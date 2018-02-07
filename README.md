@@ -11,32 +11,32 @@ Project is integrated with YAML based inputs while controls the entire functioni
   index - Configuration of the index and the settings are stored here.
   
   eaedb:<br>
-    host - Provide the IP of the mongodb instance installed
-    port - Port number on which the instance is hosted.
-    user - username for authentication
-    passwd - password encrypted using python module 'cryptography'
-    pass_key - password key created using 'cryptography' module.
-    authentication - Toggle to ON/OFF the user authentication.
+    host - Provide the IP of the mongodb instance installed<br>
+    port - Port number on which the instance is hosted.<br>
+    user - username for authentication.<br>
+    passwd - password encrypted using python module 'cryptography'<br>
+    pass_key - password key created using 'cryptography' module.<br>
+    authentication - Toggle to ON/OFF the user authentication.<br>
 
   backup:<br>
-    disabled: Toggle to disable the backup manager.
-    deferred: Toggle defer/start the backup manager.
-    debug: Toggle to enable the debug mode.
-    path: Location on disk or a UNC path to store the backup files. The user should have explicit write permission prior starting the service.
+    disabled: Toggle to disable the backup manager.<br>
+    deferred: Toggle defer/start the backup manager.<br>
+    debug: Toggle to enable the debug mode.<br>
+    path: Location on disk or a UNC path to store the backup files. The user should have explicit write permission prior starting the service.<br>
     retention: Number of latest active rentention sets to store on disk. Other sets will be purged once they expire.
-    frequency: Hours of the day to execute the backup. Follow 24-Clock format.
-    day_of_week: Week number to execute the report.
+    frequency: Hours of the day to execute the backup. Follow 24-Clock format.<br>
+    day_of_week: Week number to execute the report.<br>
 
   index:<br>
-    disabled: Toggle to disable the index manager.
-    deferred: Toggle defer/start the index manager.
-    debug: Toggle to enable the debug mode.
-    stats: Get stats to collections for future review.
-    day_of_week: Week number to execute the report.
+    disabled: Toggle to disable the index manager.<br>
+    deferred: Toggle defer/start the index manager.<br>
+    debug: Toggle to enable the debug mode.<br>
+    stats: Get stats to collections for future review.<br>
+    day_of_week: Week number to execute the report.<br>
 
-NOTE: If you're not familiar with 'cryptography' module, turn off the authentication in eaedb section.
-  eaedb:
-    authentication: False
+NOTE: If you're not familiar with 'cryptography' module, turn off the authentication in eaedb section.<br>
+  eaedb:<br>
+    authentication: False<br>
 
 <b>KICK-OFF</b><br>
   Copy all the files in a folder.<br>
