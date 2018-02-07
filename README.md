@@ -1,14 +1,14 @@
 <b>automatedBKP</b><br>
 This repository is created for automating and managing indices and backups for mongoDB.
 
-Project is integrated with YAML based inputs while controls the entire functioning.
+Project is integrated with YAML based inputs which controls the entire functioning.
 
 <b>CONFIGURE</b><br>
-  Open dtsConfig.yaml file
-  You should see three section in the config file
-  eaedb - Configuration of the database and the settings are stored here.
-  backup - Configuration of the backup and the settings are stored here.
-  index - Configuration of the index and the settings are stored here.
+  Open dtsConfig.yaml file.
+  You should see three section in the config file<br>
+  eaedb - Configuration of the database and the settings are stored here.<br>
+  backup - Configuration of the backup and the settings are stored here.<br>
+  index - Configuration of the index and the settings are stored here.<br>
   
   eaedb:<br>
     host - Provide the IP of the mongodb instance installed<br>
