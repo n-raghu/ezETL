@@ -10,7 +10,7 @@ Project is integrated with YAML based inputs while controls the entire functioni
   backup - Configuration of the backup and the settings are stored here.
   index - Configuration of the index and the settings are stored here.
   
-  eaedb:
+  eaedb:<br>
     host - Provide the IP of the mongodb instance installed
     port - Port number on which the instance is hosted.
     user - username for authentication
@@ -18,7 +18,7 @@ Project is integrated with YAML based inputs while controls the entire functioni
     pass_key - password key created using 'cryptography' module.
     authentication - Toggle to ON/OFF the user authentication.
 
-  backup:
+  backup:<br>
     disabled: Toggle to disable the backup manager.
     deferred: Toggle defer/start the backup manager.
     debug: Toggle to enable the debug mode.
@@ -27,7 +27,7 @@ Project is integrated with YAML based inputs while controls the entire functioni
     frequency: Hours of the day to execute the backup. Follow 24-Clock format.
     day_of_week: Week number to execute the report.
 
-  index:
+  index:<br>
     disabled: Toggle to disable the index manager.
     deferred: Toggle defer/start the index manager.
     debug: Toggle to enable the debug mode.
@@ -39,7 +39,7 @@ NOTE: If you're not familiar with 'cryptography' module, turn off the authentica
     authentication: False
 
 <b>KICK-OFF</b><br>
-  Copy all the files in a folder.
+  Copy all the files in a folder.<br>
   <b>python dtsAdmin.py</b>
   
   
