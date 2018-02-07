@@ -23,7 +23,7 @@ Project is integrated with YAML based inputs while controls the entire functioni
     deferred: Toggle defer/start the backup manager.<br>
     debug: Toggle to enable the debug mode.<br>
     path: Location on disk or a UNC path to store the backup files. The user should have explicit write permission prior starting the service.<br>
-    retention: Number of latest active rentention sets to store on disk. Other sets will be purged once they expire.
+    retention: Number of latest active rentention sets to store on disk. Other sets will be purged once they expire.<br>
     frequency: Hours of the day to execute the backup. Follow 24-Clock format.<br>
     day_of_week: Week number to execute the report.<br>
 
