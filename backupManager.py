@@ -25,8 +25,8 @@ def main():
   return 0
 
 def backupAgent(bkc,bkpacks,dbTup):
-  global ops,PIPE,Popen,OrderedDict,datetime,dba
-  OrderedDict,PIPE,Popen,ops,datetime=bkpacks
+  global PIPE,Popen,OrderedDict,datetime,dba
+  OrderedDict,PIPE,Popen,opsTMP,datetime=bkpacks
   dba,dbe,dbi,dbo=dbTup
   opt,retention,backupSetID,path=bkc
   dtNow=datetime.today().date()
@@ -37,7 +37,7 @@ def backupAgent(bkc,bkpacks,dbTup):
   pbk=False
   pat=False
   if(opt==1 or opt=='1'):
-    cbk=createBackup(path,backupSetID)
+    cbk=createBackup(opsTMP,path,backupSetID)
     pbk=purgeBackup(retention)
   elif(opt==2 or opt=='2'):
     pbk=purgeBackup(retention)
@@ -47,14 +47,15 @@ def backupAgent(bkc,bkpacks,dbTup):
     print('INVALID OPTION')
   return cbk,pbk,pat
 
-def createBackup(path,bkpid):
+def createBackup(opsBK,path,bkpid):
+  ops=opsBK
   bkStat=OrderedDict()
   bkStat['timestarted']=datetime.now()
   bkStat['backupSetID']=bkpid
   bkStat['purged']=False
   bkStat['model']='backup'
   bkStat['path']=path
-  dbDIR=path+'/'+bkpid
+  dbDIR=path+str(bkpid)
   if(os.path.exists(dbDIR)):
     timeNow=datetime.now()
     oldDBName=dbDIR+str(timeNow.hour)
@@ -62,7 +63,9 @@ def createBackup(path,bkpid):
     proc.wait()
     pErr,gist=proc.communicate()
     bkStat['issue']={'gist':gist.decode(),'error':pErr.decode()}
-  ops.append(path)
+  ops.append(dbDIR)
+  with open('/eae/bkp/setid','w') as tmp:
+    tmp.write(str(ops))
   proc=Popen(ops,stderr=PIPE,stdout=PIPE)
   proc.wait()
   pErr,gist=proc.communicate()
@@ -77,13 +80,13 @@ def createBackup(path,bkpid):
   bkStat['timefinished']=datetime.now()
   return bkStat
 
-def purgeBackup():
+def purgeBackup(retention):
+  purgeList=[]
   catalogue=list(dba.find({'purged':False},{'backupSetID':1}).sort('backupSetID',-1))
   if(len(catalogue)>retention):
     catalogue.sort(reverse=True)
     purgeFile=catalogue[retention:]
     purgeSet=list(dba.find({'backupSetID':{'$in':purgeFile}},{'backupSetID':1,'path':1}))
-    purgeList=[]
     for lsd,pSet in purgeSet:
       proc=Popen(['rm','-r',pSet],stderr=PIPE,stdout=PIPE)
       proc.wait()
@@ -112,8 +115,6 @@ if __name__=='__main__':
   import sys, collections as clc, pymongo as pym, datetime as dtm, subprocess as sbp
   print('BACKUP MANAGER SHELL INVOKED...')
   print('DO NOTE, INVOKING FROM "dtsAdmin" IS THE BEST PRACTISE ...')
-  if(len(sys.argv)!=5):
-    sys.exit('Invalid Arguments')
   mongoConStr=sys.argv[1]
   eaedw=sys.argv[2]
   mongoKonnect=pym.MongoClient(mongoConStr,username=sys.argv[3],password=sys.argv[4])
