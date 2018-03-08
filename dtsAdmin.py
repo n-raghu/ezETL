@@ -60,6 +60,10 @@ def backupJOB(bkSet,retro,bkPath,opt=1):
   if(len(opsLL)!=opsLen):
     opsLL.pop()
   cbk,pbk,pat=ss
+
+  print(pbk)
+  print(pat)
+  
   if(cbk!=False):
     cbk.update(OrderedDict({'_id':uid()}))
     dba.insert_one(cbk)
@@ -70,9 +74,9 @@ def backupJOB(bkSet,retro,bkPath,opt=1):
   if(pbk!=False):
     for purger in pbk:
       if('purgeIssue' in purger.keys()):
-        dba.update_one({'backSetupID':purger['backSetupID']},{'$set':{'purgeIssue':purger['purgeIssue'],'purged':purger['purged']}})
+        dba.update_one({'backupSetupID':purger['backupSetupID']},{'$set':{'purgeIssue':purger['purgeIssue'],'purged':purger['purged']}})
       else:
-        dba.update_one({'backSetupID':purger['backSetupID']},{'$set':{'purged':purger['purged']}})
+        dba.update_one({'backupSetupID':purger['backupSetupID']},{'$set':{'purged':purger['purged']}})
   else:
     patrol=OrderedDict()
     patrol['_id']=uid()

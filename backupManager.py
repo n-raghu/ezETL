@@ -64,8 +64,6 @@ def createBackup(opsBK,path,bkpid):
     pErr,gist=proc.communicate()
     bkStat['issue']={'gist':gist.decode(),'error':pErr.decode()}
   ops.append(dbDIR)
-  with open('/eae/bkp/setid','w') as tmp:
-    tmp.write(str(ops))
   proc=Popen(ops,stderr=PIPE,stdout=PIPE)
   proc.wait()
   pErr,gist=proc.communicate()
@@ -82,20 +80,31 @@ def createBackup(opsBK,path,bkpid):
 
 def purgeBackup(retention):
   purgeList=[]
-  catalogue=list(dba.find({'purged':False},{'backupSetID':1}).sort('backupSetID',-1))
+  catalogue=list(dba.find({'purged':False},{'backupSetID':1}))
+  with open('bkset','w') as cgu:
+    cgu.write(str(catalogue)+"\n")
   if(len(catalogue)>retention):
-    catalogue.sort(reverse=True)
-    purgeFile=catalogue[retention:]
-    purgeSet=list(dba.find({'backupSetID':{'$in':purgeFile}},{'backupSetID':1,'path':1}))
-    for lsd,pSet in purgeSet:
-      proc=Popen(['rm','-r',pSet],stderr=PIPE,stdout=PIPE)
+    catalogue.sort(key=lambda k: k['backupSetID'],reverse=True)
+    purgeFileSet=catalogue[retention:]
+    purgeFile=[k['backupSetID'] for k in purgeFileSet]
+    with open('bkset','a') as cgu:
+      cgu.write(str(purgeFile)+"\n")
+    purgeSet=list(dba.find({'backupSetID':{'$in':purgeFile}},{'backupSetID':1,'path':1,'_id':0}))
+    with open('bkset','a') as cgu:
+      cgu.write(str(purgeSet)+"\n")
+    for pst in purgeSet:
+      combo=pst.values()
+      purgeFileName=combo[0]+str(combo[1])
+      with open('bkset','a') as bkf:
+        bkf.write(str(purgeFileName)+"\n")
+      proc=Popen(['rm','-r',purgeFileName],stderr=PIPE,stdout=PIPE)
       proc.wait()
       pErr,gist=proc.communicate()
       pErr=pErr.decode()
       if(pErr==''):
-        bkStat=OrderedDict({'backupSetID':lsd,'purged':True})
+        bkStat=OrderedDict({'backupSetID':combo[1],'purged':True})
       else:
-        bkStat=OrderedDict({'backupSetID':lsd,'purgeIssue':pErr,'purged':True})
+        bkStat=OrderedDict({'backupSetID':combo[1],'purgeIssue':pErr,'purged':True})
       purgeList.append(bkStat)
   return purgeList
 

@@ -11,8 +11,8 @@ def main():
 
 def idxConstructor(idxSet):
 	print('Constructor Invoked')
-	buildSet=[]
 	for kit in idxSet:
+		buildSet=[]
 		nuKit=odc(kit)
 		queryBuilder=[]
 		for i,k in nuKit['definition'].items():
