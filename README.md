@@ -23,7 +23,7 @@ Project is integrated with YAML file-based inputs which controls the entire func
     deferred: Toggle defer/start the backup manager.<br>
     debug: Toggle to enable the debug mode.<br>
     path: Location on disk or a UNC path to store the backup files. The user should have explicit write permission prior starting the service.<br>
-    retention: Number of latest active rentention sets to store on disk. Other sets will be purged once they expire.<br>
+    retention: Number of latest active rentention sets to store on disk. Other sets will be purged once they are expired.<br>
     frequency: Hours of the day to execute the backup. Follow 24-Clock format.<br>
     day_of_week: Week number to execute the report.<br>
 
@@ -41,4 +41,3 @@ NOTE: If you're not familiar with 'cryptography' module, turn off the authentica
 <b>KICK-OFF</b><br>
   Copy all the files in a folder.<br>
   <b>python dtsAdmin.py</b>
-
