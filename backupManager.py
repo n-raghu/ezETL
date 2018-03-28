@@ -82,6 +82,7 @@ def purgeBackup(retention):
   purgeList=[]
   catalogue=list(dba.find({'purged':False},{'backupSetID':1}))
   with open('bkset','w') as cgu:
+    cgu.write('Retention: ' +str(retention)+ 'catalogue len: ' +str(len(catalogue))+ '\n')
     cgu.write(str(catalogue)+"\n")
   if(len(catalogue)>retention):
     catalogue.sort(key=lambda k: k['backupSetID'],reverse=True)

@@ -15,14 +15,15 @@ def idxConstructor(idxSet):
 		buildSet=[]
 		nuKit=odc(kit)
 		queryBuilder=[]
-		for i,k in nuKit['definition'].items():
-			if(int(k)==1):
+		for definite in nuKit['definition']:
+			val=definite.values()
+			if(int(val[1])==1):
 				k=asc
-			elif(int(k)==-1):
+			elif(int(val[1])==-1):
 				k=dsc
 			else:
 				break
-			tup=(str(i),k)
+			tup=(str(val[0]),k)
 			queryBuilder.append(tup)
 		if(nuKit['isUnique']==True):
 			buildComponent=idxModel(queryBuilder,unique=True,name=nuKit['idx'])

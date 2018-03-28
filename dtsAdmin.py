@@ -28,7 +28,9 @@ def eaedbKonnexions(pwd,uname=eaeAcc):
   if(uname==0 or pwd==0):
     mongoKonnect=mClient(eaeIns)
   else:
-    mongoKonnect=mClient(eaeIns,username=uname,password=pwd)
+    uri='mongodb://' +uname+ ':' +pwd+ '@' +eaeIns
+    mongoKonnect=mClient(uri)
+#    mongoKonnect=mClient(eaeIns,username=uname,password=pwd)
   a=mongoKonnect[eaedw].logDTSAdminActions
   e=mongoKonnect[eaedw].logDTSErrors
   i=mongoKonnect[eaedw].indexTracker
@@ -61,9 +63,6 @@ def backupJOB(bkSet,retro,bkPath,opt=1):
     opsLL.pop()
   cbk,pbk,pat=ss
 
-  print(pbk)
-  print(pat)
-  
   if(cbk!=False):
     cbk.update(OrderedDict({'_id':uid()}))
     dba.insert_one(cbk)
@@ -74,9 +73,9 @@ def backupJOB(bkSet,retro,bkPath,opt=1):
   if(pbk!=False):
     for purger in pbk:
       if('purgeIssue' in purger.keys()):
-        dba.update_one({'backupSetupID':purger['backupSetupID']},{'$set':{'purgeIssue':purger['purgeIssue'],'purged':purger['purged']}})
+        dba.update_one({'backupSetID':purger['backupSetID']},{'$set':{'purgeIssue':purger['purgeIssue'],'purged':purger['purged']}})
       else:
-        dba.update_one({'backupSetupID':purger['backupSetupID']},{'$set':{'purged':purger['purged']}})
+        dba.update_one({'backupSetID':purger['backupSetID']},{'$set':{'purged':purger['purged']}})
   else:
     patrol=OrderedDict()
     patrol['_id']=uid()
