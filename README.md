@@ -1,7 +1,7 @@
 # easyDBA <br>
 This repository is created for automating and managing indices and backups for mongoDB.
 
-Project is integrated with YAML based inputs which controls the entire functioning.
+Project is integrated with YAML file-based inputs which controls the entire functioning.
 
 <b>CONFIGURE</b><br>
   Open dtsConfig.yaml file.
@@ -41,5 +41,4 @@ NOTE: If you're not familiar with 'cryptography' module, turn off the authentica
 <b>KICK-OFF</b><br>
   Copy all the files in a folder.<br>
   <b>python dtsAdmin.py</b>
-  
-  
+
