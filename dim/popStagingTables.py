@@ -8,19 +8,9 @@ elif debug:
 else:
 	pid=int(sys.argv[1])
 
-import yaml as y
-from collections import OrderedDict as odict
-from pypyodbc import connect as sqlCnx
-from pandas import read_sql_query as rsq,DataFrame as pdf
-from sqlalchemy import create_engine as pgcnx
-import ray as r
-from datetime import datetime as dtm
+from dimlib import *
 
-with open('dimConfig.yaml') as ymlFile:
-	cfg=y.load(ymlFile)
 r.init()
-uri='postgresql://' +cfg['eaedb']['uid']+ ':' +cfg['eaedb']['pwd']+ '@' +cfg['eaedb']['host']+ ':' +str(int(cfg['eaedb']['port']))+ '/' +cfg['eaedb']['db']
-eaeSchema=cfg['eaedb']['schema']
 csize=cfg['chunksize']
 tracker=pdf([],columns=['status','instancecode','collection','timestarted','timefinished','rowversion'])
 objFrame=[]
@@ -41,19 +31,6 @@ def recordRowVersions():
 		del tracker
 		issue=False
 	return issue
-
-def objects_mssql():
-	insList_io=[]
-	cnxPGX=pgcnx(uri)
-	insData=cnxPGX.execute("SELECT * FROM framework.instanceconfig WHERE isactive=true AND instancetype='mssql' ")
-	colFrame_io=rsq("SELECT * FROM framework.activecollections() WHERE instancetype='mssql' ",cnxPGX)
-	for cnx in insData:
-		dat=odict(cnx)
-		insDict=odict()
-		insDict['icode']=dat['instancecode']
-		insDict['sqlConStr']='DRIVER={'+cfg['drivers']['mssql']+'};SERVER='+dat['hostip']+','+str(int(dat['hport']))+';DATABASE='+dat['dbname']+';UID='+dat['uid']+';PWD='+dat['pwd']
-		insList_io.append(insDict)
-	return odict([('frame',colFrame_io),('insList',insList_io)])
 
 mssql_dict=objects_mssql()
 insList=mssql_dict['insList']
