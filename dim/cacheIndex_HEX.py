@@ -11,9 +11,9 @@ else:
 from dimlib import *
 
 r.init()
-csize=cfg['pandas']['cachesize']
+csize=cfg['cachesize']
 objFrame=[]
-tracker=pdf([],columns=['instancecode','collection','primekeys','kount','starttime','endtime'])
+tracker=pdf([],columns=['instancecode','primekey'])
 
 insQuery=''' SELECT tab.TABLE_NAME as collection,col.COLUMN_NAME as cache_indexcolumn
 	FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tab
@@ -33,45 +33,36 @@ def popCollections(icode,connexion,iFrame):
 	tabKeys=rsq(insQuery,sqx)
 	tabKeys['collection']=tabKeys['collection'].str.lower()
 	tabKeys['pid']=pid
-	tabKeys.to_sql('lmscollections',pgx,if_exists='replace',index=False,schema=eaeSchema)
-	trk=pdf([],columns=['collection','primekeys','kount','starttime','endtime'])
+	tabKeys.to_sql('lmscollections',pgx,if_exists='append',index=False,schema=eaeSchema)
+	trk=pdf([],columns=['instancecode','primekey'])
 	for idx,rowdata in iFrame.iterrows():
 		rco=rowdata['collection']
-		cachecollection=rowdata['pkitab']
+		cachecollection='cache_'+rowdata['s_table']
 		fldList=tabKeys.loc[(tabKeys['collection']==rco)]['cache_indexcolumn'].values.tolist()
 		primeKeys=','.join(fldList)
-		knt=0
-		stime=dtm.utcnow()
-		sql="SELECT '" +icode+ "' as instancecode," +primeKeys+ " FROM " +rco+ "(NOLOCK) WHERE 1=2"
-		zero=rsq(sql,sqx)
-		zero.to_sql(cachecollection,pgx,if_exists='replace',index=False,schema=eaeSchema)
 		sql="SELECT '" +icode+ "' as instancecode," +primeKeys+ " FROM " +rco+ "(NOLOCK) "
+		chk=rsq(sql,sqx)
 		for chunk in rsq(sql,sqx,chunksize=csize):
 			chunk.to_sql(cachecollection,pgx,if_exists='append',index=False,schema=eaeSchema)
-			knt+=len(chunk)
-		trk=trk.append({'collection':rco,'kount':knt,'primekeys':primeKeys,'starttime':stime,'endtime':dtm.utcnow()},sort=False,ignore_index=True)
+			trk.append(chunk,sort=False,ignore_index=True)
 	del chunk
 	sqx.close()
-	pgx.dispose()
-	trk['instancecode']=icode
-	return trk
+	return chk
 
 print('Active Instances Found: ' +str(len(insList)))
 if all([debug==False,len(insList)>0]):
 	for ins in insList:
 		cnxStr=ins['sqlConStr']
 		instancecode=ins['icode']
-		iFrame=colFrame.loc[(colFrame['icode']==instancecode) & (colFrame['instancetype']=='mssql'),['collection','pkitab']]
+		iFrame=colFrame.loc[(colFrame['icode']==instancecode) & (colFrame['instancetype']=='mssql'),['collection','s_table']]
 		objFrame.append(popCollections.remote(instancecode,cnxStr,iFrame))
 	r.wait(objFrame)
 	for obj in objFrame:
 		tracker=tracker.append(r.get(obj),sort=False,ignore_index=True)
 	del objFrame
+	tracker['hash']=list(map(lambda x: hah.sha1(x.encode()).hexdigest(), tracker['instancecode']))
 	r.shutdown()
-	pgx=pgcnx(uri)
-	tracker['pid']=pid
-	tracker.to_sql('cachetraces',pgx,if_exists='append',index=False,schema='framework')
-	pgx.dispose()
+	print(tracker)
 elif debug:
 	print('Ready to DEBUG... ')
 else:

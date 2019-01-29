@@ -11,7 +11,8 @@ else:
 from dimlib import *
 
 r.init()
-csize=cfg['chunksize']
+uri=uri
+csize=cfg['pandas']['chunksize']
 tracker=pdf([],columns=['status','instancecode','collection','timestarted','timefinished','rowversion'])
 objFrame=[]
 
@@ -32,19 +33,23 @@ def recordRowVersions():
 		issue=False
 	return issue
 
-mssql_dict=objects_mssql()
+mssql_dict=objects_mssql(uri)
 insList=mssql_dict['insList']
 colFrame=mssql_dict['frame']
+print(colFrame)
 
 @r.remote
 def popCollections(icode,connexion,iFrame):
 	pgx=pgcnx(uri)
 	sqx=sqlCnx(connexion)
+	chunk=pdf([],columns=['model'])
 	trk=pdf([],columns=['status','collection','timestarted','timefinished','rowversion'])
 	for idx,rowdata in iFrame.iterrows():
 		rco=rowdata['collection']
+		scols=rowdata['stg_cols']
+		rower=str(int(rowdata['rower']))
 		trk=trk.append({'status':False,'collection':rco,'timestarted':dtm.utcnow()},ignore_index=True)
-		sql="SELECT '" +icode+ "' as instancecode,*,CAST(sys_ROWVERSION AS BIGINT) AS ROWER FROM " +rco+ "(NOLOCK) WHERE CAST(sys_ROWVERSION AS BIGINT) > " +str(int(rowdata['rower']))
+		sql="SELECT '" +icode+ "' as instancecode," +scols+ ",CONVERT(BIGINT,sys_ROWVERSION) AS ROWER FROM " +rco+ "(NOLOCK) WHERE CONVERT(BIGINT,sys_ROWVERSION) > " +rower
 		for chunk in rsq(sql,sqx,chunksize=csize):
 			chunk.to_sql(rowdata['s_table'],pgx,if_exists='append',index=False,schema=eaeSchema)
 			trk=trk.append({'collection':rco,'rowversion':chunk['rower'].max(),'timestarted':dtm.utcnow()},ignore_index=True)
@@ -52,6 +57,7 @@ def popCollections(icode,connexion,iFrame):
 		trk.loc[(trk['collection']==rco),['timefinished']]=dtm.utcnow()
 	del chunk
 	sqx.close()
+	pgx.dispose()
 	trk['instancecode']=icode
 	return trk
 
@@ -60,7 +66,7 @@ if all([debug==False,len(insList)>0]):
 	for ins in insList:
 		cnxStr=ins['sqlConStr']
 		instancecode=ins['icode']
-		iFrame=colFrame.loc[(colFrame['icode']==instancecode) & (colFrame['instancetype']=='mssql'),['collection','s_table','rower']]
+		iFrame=colFrame.loc[(colFrame['icode']==instancecode) & (colFrame['instancetype']=='mssql'),['collection','s_table','rower','stg_cols']]
 		objFrame.append(popCollections.remote(instancecode,cnxStr,iFrame))
 	r.wait(objFrame)
 	for obj in objFrame:

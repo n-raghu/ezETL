@@ -18,7 +18,7 @@ def objects_mssql(urx):
 	insList_io=[]
 	cnxPGX=pgcnx(urx)
 	insData=cnxPGX.execute("SELECT * FROM framework.instanceconfig WHERE isactive=true AND instancetype='mssql' ")
-	colFrame_io=rsq("SELECT icode,instancetype,collection,s_table FROM framework.activecollections() WHERE instancetype='mssql' ",cnxPGX)
+	colFrame_io=rsq("SELECT icode,instancetype,collection,s_table,rower,stg_cols,pkitab FROM framework.activecollections() WHERE instancetype='mssql' ",cnxPGX)
 	for cnx in insData:
 		dat=odict(cnx)
 		insDict=odict()
