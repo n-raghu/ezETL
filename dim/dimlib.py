@@ -3,13 +3,21 @@ from collections import OrderedDict as odict
 from pypyodbc import connect as sqlCnx
 from pandas import read_sql_query as rsq,DataFrame as pdf
 from sqlalchemy import create_engine as pgcnx
+from sqlalchemy.sql import text as alchemyText
 from datetime import datetime as dtm
+from sqlalchemy.orm import sessionmaker
 
 with open('dimConfig.yaml') as ymlFile:
 	cfg=y.load(ymlFile)
 
-uri='postgresql://' +cfg['eaedb']['uid']+ ':' +cfg['eaedb']['pwd']+ '@' +cfg['eaedb']['host']+ ':' +str(int(cfg['eaedb']['port']))+ '/' +cfg['eaedb']['db']
-eaeSchema=cfg['eaedb']['schema']
+def dwCNX(tinyset=False):
+	uri='postgresql://' +cfg['eaedb']['uid']+ ':' +cfg['eaedb']['pwd']+ '@' +cfg['eaedb']['host']+ ':' +str(int(cfg['eaedb']['port']))+ '/' +cfg['eaedb']['db']
+	eaeSchema=cfg['eaedb']['schema']
+	if tinyset:
+		csize=cfg['pandas']['tinyset']
+	else:
+		csize=cfg['pandas']['bigset']
+	return csize,eaeSchema,uri
 
 if(cfg['pandas']['parallelism']):
 	import ray as r

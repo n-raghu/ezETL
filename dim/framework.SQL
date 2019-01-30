@@ -24,6 +24,19 @@ CREATE TABLE framework.tracker(
   notes TEXT
 );
 
+CREATE TABLE framework.datatypes(
+  mssql text,
+  mysql text,
+  pgsql text
+);
+
+CREATE TABLE framework.tabshape(
+  instancecode TEXT,
+  collection TEXT,
+  datatype TEXT,
+  column_str TEXT
+);
+
 CREATE TABLE framework.instanceconfig (
     instanceid INT GENERATED ALWAYS AS IDENTITY,
     isactive BOOL,
@@ -68,8 +81,8 @@ CREATE TABLE framework.chunktraces(
   instancetype TEXT,
   collection TEXT,
   rowversion BIGINT,
-  timestarted TIMESTAMP WITHOUT TIME ZONE,
-  timefinished TIMESTAMP WITHOUT TIME ZONE
+  chunkstart TIMESTAMP WITHOUT TIME ZONE,
+  chunkfinish TIMESTAMP WITHOUT TIME ZONE
 );
 
 CREATE TABLE framework.cachetraces(
@@ -81,6 +94,11 @@ CREATE TABLE framework.cachetraces(
   cachecount BIGINT,
   starttime TIMESTAMP WITHOUT TIME ZONE,
   endtime TIMESTAMP WITHOUT TIME ZONE
+);
+
+CREATE TABLE framework.tabshapetraces(
+  epoch DOUBLE PRECISION DEFAULT EXTRACT(epoch FROM CURRENT_TIMESTAMP),
+  tabquery TEXT
 );
 
 CREATE TABLE framework.volatilecollections AS
@@ -114,12 +132,81 @@ $$
 LANGUAGE plpgsql VOLATILE
 COST 100;
 
+CREATE OR REPLACE FUNCTION framework.createcollection(srctab TEXT, dsttab TEXT,schemaname TEXT,icode TEXT) RETURNS TEXT
+AS
+$$
+    DECLARE
+        qry TEXT='CREATE TABLE IF NOT EXISTS ';
+        cols TEXT;
+    BEGIN
+        SELECT string_agg(result,',') as q INTO cols FROM(
+        SELECT array_to_string(ARRAY[col_name ,pg_dt], ' ')  AS result
+        FROM(SELECT fts.column_str as col_name,fdt.pgsql as pg_dt
+        FROM framework.datatypes fdt
+        JOIN framework.tabshape fts ON fdt.mssql=fts.datatype
+        WHERE fts.instancecode=icode AND fts.collection=srctab
+        )A)X;
+
+        qry=CONCAT(qry,schemaname,'.',dsttab,'(',cols,')');
+        INSERT INTO framework.tabshapetraces(tabquery) SELECT qry;
+        EXECUTE qry;
+        RETURN qry;
+    END;
+$$
+LANGUAGE plpgsql VOLATILE
+COST 100;
+
 INSERT INTO framework.instanceconfig(isactive,instancetype,instancecode,hostip,hport,uid,pwd,dbname,instancedesc)
 SELECT false, 'mssql', 'devqa', '10.200.0.42\DEVSQL', 49887, 'lmsreaduser', 'lmsreaduser', 'iLMSDEV_REPL', 'local replica'
 UNION ALL
 SELECT true, 'mssql', 'local', '10.200.0.42\DEVSQL', 49887, 'lmsreaduser', 'lmsreaduser', 'iLMSDEV_REPL', 'local replica'
 UNION ALL
 SELECT false, 'mysql', 'local', '10.200.0.42\DEVSQL', 1433, 'lmsreaduser', 'lmsreaduser', 'iLMSDEV_REPL', 'local replica';
+
+INSERT INTO framework.datatypes
+SELECT 'bigint','','BIGINT'
+UNION ALL
+SELECT 'binary','','TEXT'
+UNION ALL
+SELECT 'bit','','BOOL'
+UNION ALL
+SELECT 'char','','TEXT'
+UNION ALL
+SELECT 'date','','DATE'
+UNION ALL
+SELECT 'datetime','','TIMESTAMP WITHOUT TIME ZONE'
+UNION ALL
+SELECT 'decimal','','FLOAT'
+UNION ALL
+SELECT 'float','','FLOAT'
+UNION ALL
+SELECT 'image','','TEXT'
+UNION ALL
+SELECT 'int','','BIGINT'
+UNION ALL
+SELECT 'nchar','','TEXT'
+UNION ALL
+SELECT 'ntext','','TEXT'
+UNION ALL
+SELECT 'numeric','','FLOAT'
+UNION ALL
+SELECT 'nvarchar','','TEXT'
+UNION ALL
+SELECT 'real','','FLOAT'
+UNION ALL
+SELECT 'smallint','','SMALLINT'
+UNION ALL
+SELECT 'text','','TEXT'
+UNION ALL
+SELECT 'tinyint','','SMALLINT'
+UNION ALL
+SELECT 'uniqueidentifier','','TEXT'
+UNION ALL
+SELECT 'varbinary','','TEXT'
+UNION ALL
+SELECT 'varchar','','TEXT'
+UNION ALL
+SELECT 'xml','','TEXT';
 
 INSERT INTO framework.collectionmaps(isactive,instancetype,collection,staging_table,stage_cols,pkitable)
 SELECT true,'mssql','tbl_user_master','tbl_user_master','*','tbl_user_master_pki'
@@ -148,3 +235,7 @@ SELECT true,'mssql','tbl_rulegroup_master','tbl_rulegroup_master','*','tbl_ruleg
 
 UPDATE framework.collectionmaps set stage_cols= 'fldUserDefinedCourseId,fldCourseName,fldUsageLimitation,fldSendReminder1,fldSendReminder2,fldReminderDays1,fldReminderDays2,fldCourseDuration,fldSetLicense,fldDeliveryMethod,charCourseType,fldDisplayCourseid,fldOwnerCustId,intLicensePeriod,charCourseStatus,charAllowEnrollCourse,convert(VARCHAR,strPrerequisitesUserDefinedCourseIds) as strprerequisitesuserdefinedcourseids ,strCourseCurriculumCategory,intGroupId,bitSendCertificateOnCourseCompletion,strSignatureFilePath,strLeftSignatureFilePath,strHeaderSignatureFilePath,strFooterSignatureFilePath,charDisplaySurvey,charIsSurveyMandatory,charIsVersioningOff,charIsMultiModuleICCourse,charIsCertificationProgramEnable,decPrice,charLicensePeriodType,bitIsEnableLicensePeriod,intCertificationValidPeriod,charCertificationCriteriaField,charIsSendReminderAndReEnrollInCertification,intFirstCertificationReminder,charReEnrollInCertification,charIsSecondCertificationReminderEnable,intSecondCertificationReminder,charIsThirdCertificationReminderEnable,intThirdCertificationReminder,charIsGracePeriodEnable,intGracePeriodDays,charIsSendGracePeriodStartNotification,charSendMessageToUser,charSendMessageToManager,charSendMessageToOrgAdministrator,CharIsSendMessageToOtherEnable,charSendMessageToOther,strUserDefinedCourseIDToEnrollAfterExpiration,charAllowCourseAccessAfterExpirationAndGracePeriod,bitIsLockEnabled,dtmCourseDurationSpecific,bitPastDueSendEmailUsr,bitPastDueLockCourse,bitPastDueSendEmailMgr,charPastDueChangeStatus,IsScormEngineCourse,charSendExpiredMessage,bitSendCertificateHeaderText,bitSendCertificateFooterText,bitEnablePastDueChangeStatus,charIsSendExpiredMessage,charIsSkipCourseStatusScreen,EmbedCount,DisplayCertificateOnUserTranscript,strCourseDirectoryName,charWindowSize,intWindowWidth,intWindowHeight,bitPreventWindowResize,bitIsMEEnable,bitIsCertificationEnable,bitIsAssignedViaOtherEnrollment,IsIELSCORMCourse,bitIfSAChangeLicense,bitIsHistorical,bitIsEnableVolumeDiscount,bitIsSendLicenseExpirationMail,intDaysBeforeLicenseExpiration,tinyintIEngineVersion,dtmCreatedDate,bitIsNew,chariEngineCourseType,bitIsLogoBranding,bitIsPolicyBranding,charDueDateUserProfileField,strCopiedFromUserDefinedCourseID,charCourseImportType,bitIsMobileEnabled,bitIsMobileReady,bitIsMobileOffline,bitIsCyQ'
 where collection='tbl_course_name' and instancetype='mssql'
+
+update framework.collectionmaps set isactive=false;
+update framework.collectionmaps set isactive=true where collection in ('tbl_assign_course_student');
+select * from framework.activecollections();

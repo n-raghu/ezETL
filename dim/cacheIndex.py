@@ -11,7 +11,8 @@ else:
 from dimlib import *
 
 r.init()
-csize=cfg['pandas']['cachesize']
+csize,eaeSchema,uri=dwCNX(tinyset=False)
+print(uri)
 objFrame=[]
 tracker=pdf([],columns=['instancecode','collection','primekeys','kount','starttime','endtime'])
 
@@ -20,8 +21,6 @@ insQuery=''' SELECT tab.TABLE_NAME as collection,col.COLUMN_NAME as cache_indexc
 	JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE col ON tab.CONSTRAINT_NAME=col.CONSTRAINT_NAME AND tab.TABLE_NAME=col.TABLE_NAME
 WHERE Constraint_Type = 'PRIMARY KEY' '''
 
-uri=uri
-eaeSchema=eaeSchema
 mssql_dict=objects_mssql(uri)
 insList=mssql_dict['insList']
 colFrame=mssql_dict['frame']
@@ -42,9 +41,6 @@ def popCollections(icode,connexion,iFrame):
 		primeKeys=','.join(fldList)
 		knt=0
 		stime=dtm.utcnow()
-		sql="SELECT '" +icode+ "' as instancecode," +primeKeys+ " FROM " +rco+ "(NOLOCK) WHERE 1=2"
-		zero=rsq(sql,sqx)
-		zero.to_sql(cachecollection,pgx,if_exists='replace',index=False,schema=eaeSchema)
 		sql="SELECT '" +icode+ "' as instancecode," +primeKeys+ " FROM " +rco+ "(NOLOCK) "
 		for chunk in rsq(sql,sqx,chunksize=csize):
 			chunk.to_sql(cachecollection,pgx,if_exists='append',index=False,schema=eaeSchema)
