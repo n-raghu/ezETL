@@ -55,7 +55,7 @@ def popCollections(icode,connexion,iFrame):
 		s_table=rowdata['s_table']
 		scols=rowdata['stg_cols']
 		rower=str(int(rowdata['rower']))
-		trk=trk.append({'status':False,'collection':rco,'timestarted':dtm.utcnow()},ignore_index=True)
+		trk=trk.append({'status':False,'collection':rco,'timestarted':dtm.utcnow()},ignore_index=True) #Could be removed.
 		ddql=alchemyText(" SELECT framework.createcollection(:f_srcTab,:f_dstTab,:f_schema,:f_icode) ")
 		ddql=" SELECT framework.createcollection('" +rco+ "','" +s_table+ "','" +eaeSchema+ "','" +icode+ "')"
 		print(ddql)
