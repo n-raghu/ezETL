@@ -1,7 +1,7 @@
-DROP SCHEMA IF EXISTS devstage CASCADE;
+DROP SCHEMA IF EXISTS nudev CASCADE;
 DROP SCHEMA IF EXISTS framework CASCADE;
 
-CREATE SCHEMA devstage;
+CREATE SCHEMA nudev;
 CREATE SCHEMA framework;
 
 CREATE TABLE framework.jobs(
@@ -68,9 +68,10 @@ CREATE TABLE framework.collectionmaps(
   isactive BOOL,
   instancetype TEXT,
   collection TEXT,
-  staging_table TEXT,
-  stage_cols TEXT,
-  pkitable TEXT
+  stage_table TEXT,
+  stage_fields TEXT,
+  pki_table TEXT,
+  pki_fields TEXT
 );
 
 CREATE TABLE framework.chunktraces(
@@ -91,7 +92,7 @@ CREATE TABLE framework.cachetraces(
   instancecode TEXT,
   collection TEXT,
   primekeys TEXT,
-  cachecount BIGINT,
+  kount BIGINT,
   starttime TIMESTAMP WITHOUT TIME ZONE,
   endtime TIMESTAMP WITHOUT TIME ZONE
 );
@@ -102,19 +103,19 @@ CREATE TABLE framework.tabshapetraces(
 );
 
 CREATE TABLE framework.volatilecollections AS
-SELECT fic.instancecode,fic.instancetype,fcm.collection,fcm.staging_table,fcm.pkitable,fcm.stage_cols ,0::bigint as rover
+SELECT fic.instancecode,fic.instancetype,fcm.collection,fcm.stage_table,fcm.stage_fields,fcm.pki_table,fcm.pki_fields ,0::bigint as rover
 FROM framework.instanceconfig fic
 JOIN framework.collectionmaps fcm ON fic.instancetype=fcm.instancetype
 	WHERE fcm.isactive=true AND fic.isactive=true;
 
 CREATE OR REPLACE FUNCTION framework.activecollections()
-    RETURNS TABLE(icode TEXT,instancetype TEXT,collection TEXT,s_table TEXT,pkitab TEXT,stg_cols TEXT,rower BIGINT) AS
+    RETURNS TABLE(icode TEXT,instancetype TEXT,collection TEXT,s_table TEXT,stg_cols TEXT,pkitab TEXT,pki_cols TEXT,rower BIGINT) AS
 $$
 BEGIN
 
 TRUNCATE TABLE framework.volatilecollections;
 INSERT INTO framework.volatilecollections
-SELECT fic.instancecode,fic.instancetype,fcm.collection,fcm.staging_table,fcm.pkitable,fcm.stage_cols ,0::BIGINT AS rover
+SELECT fic.instancecode,fic.instancetype,fcm.collection,fcm.stage_table,fcm.stage_fields,fcm.pki_table,fcm.pki_fields ,0::BIGINT AS rover
   FROM framework.instanceconfig fic
   JOIN framework.collectionmaps fcm ON fic.instancetype=fcm.instancetype
     WHERE fcm.isactive=true AND fic.isactive=true;
@@ -132,7 +133,7 @@ $$
 LANGUAGE plpgsql VOLATILE
 COST 100;
 
-CREATE OR REPLACE FUNCTION framework.createcollection(srctab TEXT, dsttab TEXT,schemaname TEXT,icode TEXT) RETURNS TEXT
+CREATE OR REPLACE FUNCTION framework.createcollection(srctab TEXT, dsttab TEXT,schemaname TEXT) RETURNS TEXT
 AS
 $$
     DECLARE
@@ -144,9 +145,8 @@ $$
         FROM(SELECT fts.column_str as col_name,fdt.pgsql as pg_dt
         FROM framework.datatypes fdt
         JOIN framework.tabshape fts ON fdt.mssql=fts.datatype
-        WHERE fts.instancecode=icode AND fts.collection=srctab
+        WHERE fts.collection=srctab
         )A)X;
-
         qry=CONCAT(qry,schemaname,'.',dsttab,'(instancecode TEXT,',cols,',sys_rowversion TEXT,rower BIGINT)');
         INSERT INTO framework.tabshapetraces(tabquery) SELECT qry;
         EXECUTE qry;
@@ -208,34 +208,35 @@ SELECT 'varchar','','TEXT'
 UNION ALL
 SELECT 'xml','','TEXT';
 
-INSERT INTO framework.collectionmaps(isactive,instancetype,collection,staging_table,stage_cols,pkitable)
-SELECT true,'mssql','tbl_user_master','tbl_user_master','*','tbl_user_master_pki'
+INSERT INTO framework.collectionmaps(isactive,instancetype,collection,stage_table,stage_fields,pki_table,pki_fields)
+SELECT true,'mssql','tbl_user_master','tbl_user_master','*','tbl_user_master_pki','flduserid'
 UNION ALL
-SELECT true,'mssql','tbl_customer_lookup','tbl_customer_lookup','*','tbl_customer_lookup_pki'
+SELECT true,'mssql','tbl_customer_lookup','tbl_customer_lookup','*','tbl_customer_lookup_pki','fldcustid'
 UNION ALL
-SELECT true,'mysql','emailcamps','emailcamps','*','emailcamps_pki'
+SELECT true,'mysql','emailcamps','emailcamps','*','emailcamps_pki',''
 UNION ALL
-SELECT true,'mssql','tbl_course_name','tbl_course_name','*','tbl_course_name_pki'
+SELECT true,'mssql','tbl_course_name','tbl_course_name','*','tbl_course_name_pki','flduserdefinedcourseid'
 UNION ALL
-SELECT true,'mssql','tbl_customer_course','tbl_customer_course','*','tbl_customer_course_pki'
+SELECT true,'mssql','tbl_customer_course','tbl_customer_course','*','tbl_customer_course_pki','intcustid,struserdefinedcourseid'
 UNION ALL
-SELECT true,'mssql','tbl_student_lookup','tbl_student_lookup','*','tbl_student_lookup_pki'
+SELECT true,'mssql','tbl_student_lookup','tbl_student_lookup','*','tbl_student_lookup_pki','flduserid,fldcustid'
 UNION ALL
-SELECT true,'mssql','tbl_rulegroup_user','tbl_rulegroup_user','*','tbl_rulegroup_user_pki'
+SELECT true,'mssql','tbl_rulegroup_user','tbl_rulegroup_user','*','tbl_rulegroup_user_pki','intrulegroupid'
 UNION ALL
-SELECT true,'mssql','tbl_assign_course_student','tbl_assign_course_student','*','tbl_assign_course_student_pki'
+SELECT true,'mssql','tbl_assign_course_student','tbl_assign_course_student','*','tbl_assign_course_student_pki','fldassigncourseid,flduseridassignedto,struserdefinedcourseid'
 UNION ALL
-SELECT true,'mssql','tbl_department_lookup','tbl_department_lookup','*','tbl_department_lookup_pki'
+SELECT true,'mssql','tbl_department_lookup','tbl_department_lookup','*','tbl_department_lookup_pki','flddeptid'
 UNION ALL
-SELECT true,'mssql','tbl_division_lookup','tbl_division_lookup','*','tbl_division_lookup_pki'
+SELECT true,'mssql','tbl_division_lookup','tbl_division_lookup','*','tbl_division_lookup_pki','flddivisionid'
 UNION ALL
-SELECT true,'mssql','tbl_region_lookup','tbl_region_lookup','*','tbl_region_lookup_pki'
+SELECT true,'mssql','tbl_region_lookup','tbl_region_lookup','*','tbl_region_lookup_pki','fldregionid'
 UNION ALL
-SELECT true,'mssql','tbl_rulegroup_master','tbl_rulegroup_master','*','tbl_rulegroup_master_pki';
+SELECT true,'mssql','tbl_rulegroup_master','tbl_rulegroup_master','*','tbl_rulegroup_master_pki','intrulegroupid';
 
-UPDATE framework.collectionmaps set stage_cols= 'fldUserDefinedCourseId,fldCourseName,fldUsageLimitation,fldSendReminder1,fldSendReminder2,fldReminderDays1,fldReminderDays2,fldCourseDuration,fldSetLicense,fldDeliveryMethod,charCourseType,fldDisplayCourseid,fldOwnerCustId,intLicensePeriod,charCourseStatus,charAllowEnrollCourse,convert(VARCHAR,strPrerequisitesUserDefinedCourseIds) as strprerequisitesuserdefinedcourseids ,strCourseCurriculumCategory,intGroupId,bitSendCertificateOnCourseCompletion,strSignatureFilePath,strLeftSignatureFilePath,strHeaderSignatureFilePath,strFooterSignatureFilePath,charDisplaySurvey,charIsSurveyMandatory,charIsVersioningOff,charIsMultiModuleICCourse,charIsCertificationProgramEnable,decPrice,charLicensePeriodType,bitIsEnableLicensePeriod,intCertificationValidPeriod,charCertificationCriteriaField,charIsSendReminderAndReEnrollInCertification,intFirstCertificationReminder,charReEnrollInCertification,charIsSecondCertificationReminderEnable,intSecondCertificationReminder,charIsThirdCertificationReminderEnable,intThirdCertificationReminder,charIsGracePeriodEnable,intGracePeriodDays,charIsSendGracePeriodStartNotification,charSendMessageToUser,charSendMessageToManager,charSendMessageToOrgAdministrator,CharIsSendMessageToOtherEnable,charSendMessageToOther,strUserDefinedCourseIDToEnrollAfterExpiration,charAllowCourseAccessAfterExpirationAndGracePeriod,bitIsLockEnabled,dtmCourseDurationSpecific,bitPastDueSendEmailUsr,bitPastDueLockCourse,bitPastDueSendEmailMgr,charPastDueChangeStatus,IsScormEngineCourse,charSendExpiredMessage,bitSendCertificateHeaderText,bitSendCertificateFooterText,bitEnablePastDueChangeStatus,charIsSendExpiredMessage,charIsSkipCourseStatusScreen,EmbedCount,DisplayCertificateOnUserTranscript,strCourseDirectoryName,charWindowSize,intWindowWidth,intWindowHeight,bitPreventWindowResize,bitIsMEEnable,bitIsCertificationEnable,bitIsAssignedViaOtherEnrollment,IsIELSCORMCourse,bitIfSAChangeLicense,bitIsHistorical,bitIsEnableVolumeDiscount,bitIsSendLicenseExpirationMail,intDaysBeforeLicenseExpiration,tinyintIEngineVersion,dtmCreatedDate,bitIsNew,chariEngineCourseType,bitIsLogoBranding,bitIsPolicyBranding,charDueDateUserProfileField,strCopiedFromUserDefinedCourseID,charCourseImportType,bitIsMobileEnabled,bitIsMobileReady,bitIsMobileOffline,bitIsCyQ'
+UPDATE framework.collectionmaps set stage_fields= 'fldUserDefinedCourseId,fldCourseName,fldUsageLimitation,fldSendReminder1,fldSendReminder2,fldReminderDays1,fldReminderDays2,fldCourseDuration,fldSetLicense,fldDeliveryMethod,charCourseType,fldDisplayCourseid,fldOwnerCustId,intLicensePeriod,charCourseStatus,charAllowEnrollCourse,convert(VARCHAR,strPrerequisitesUserDefinedCourseIds) as strprerequisitesuserdefinedcourseids ,strCourseCurriculumCategory,intGroupId,bitSendCertificateOnCourseCompletion,strSignatureFilePath,strLeftSignatureFilePath,strHeaderSignatureFilePath,strFooterSignatureFilePath,charDisplaySurvey,charIsSurveyMandatory,charIsVersioningOff,charIsMultiModuleICCourse,charIsCertificationProgramEnable,decPrice,charLicensePeriodType,bitIsEnableLicensePeriod,intCertificationValidPeriod,charCertificationCriteriaField,charIsSendReminderAndReEnrollInCertification,intFirstCertificationReminder,charReEnrollInCertification,charIsSecondCertificationReminderEnable,intSecondCertificationReminder,charIsThirdCertificationReminderEnable,intThirdCertificationReminder,charIsGracePeriodEnable,intGracePeriodDays,charIsSendGracePeriodStartNotification,charSendMessageToUser,charSendMessageToManager,charSendMessageToOrgAdministrator,CharIsSendMessageToOtherEnable,charSendMessageToOther,strUserDefinedCourseIDToEnrollAfterExpiration,charAllowCourseAccessAfterExpirationAndGracePeriod,bitIsLockEnabled,dtmCourseDurationSpecific,bitPastDueSendEmailUsr,bitPastDueLockCourse,bitPastDueSendEmailMgr,charPastDueChangeStatus,IsScormEngineCourse,charSendExpiredMessage,bitSendCertificateHeaderText,bitSendCertificateFooterText,bitEnablePastDueChangeStatus,charIsSendExpiredMessage,charIsSkipCourseStatusScreen,EmbedCount,DisplayCertificateOnUserTranscript,strCourseDirectoryName,charWindowSize,intWindowWidth,intWindowHeight,bitPreventWindowResize,bitIsMEEnable,bitIsCertificationEnable,bitIsAssignedViaOtherEnrollment,IsIELSCORMCourse,bitIfSAChangeLicense,bitIsHistorical,bitIsEnableVolumeDiscount,bitIsSendLicenseExpirationMail,intDaysBeforeLicenseExpiration,tinyintIEngineVersion,dtmCreatedDate,bitIsNew,chariEngineCourseType,bitIsLogoBranding,bitIsPolicyBranding,charDueDateUserProfileField,strCopiedFromUserDefinedCourseID,charCourseImportType,bitIsMobileEnabled,bitIsMobileReady,bitIsMobileOffline,bitIsCyQ'
 where collection='tbl_course_name' and instancetype='mssql';
 
 update framework.collectionmaps set isactive=false;
-update framework.collectionmaps set isactive=true where collection in ('tbl_assign_course_student');
+update framework.collectionmaps set isactive=true where collection in ('tbl_customer_lookup');
+
 select * from framework.activecollections();

@@ -38,18 +38,43 @@ mssql_dict=objects_mssql(uri)
 insList=mssql_dict['insList']
 colFrame=mssql_dict['frame']
 
+def copyCollectionShape(icode,cnxStr,uri):
+	pgx=pgcnx(uri)
+	sqx=sqlCnx(cnxStr)
+	session=sessionmaker(bind=pgx)
+	nuSession=session()
+	nuSession.execute(''' TRUNCATE TABLE framework.tabshape ''')
+	nuSession.commit()
+	nuSession.close()
+	dbQL="SELECT '" +icode+ "' as instancecode,COLUMN_NAME as column_str,DATA_TYPE as datatype,TABLE_NAME as collection FROM INFORMATION_SCHEMA.COLUMNS ORDER BY TABLE_NAME DESC"
+	dbShape=rsq(dbQL,sqx)
+	dbShape['collection']=dbShape['collection'].str.lower()
+	dbShape['column_str']=dbShape['column_str'].str.lower()
+	dbShape.to_sql('tabshape',pgx,if_exists='append',index=False,schema='framework')
+	sqx.close()
+	pgx.dispose()
+	del dbShape
+	return None
+
+@r.remote
+def createCollections(sql_table,stage_table,schema_name,uri):
+	pgx=pgcnx(uri)
+	ddql=alchemyText(" SELECT framework.createcollection(:f_srcTab,:f_dstTab,:f_schema) ")
+	ddql=" SELECT framework.createcollection('" +sql_table+ "','" +stage_table+ "','" +schema_name+ "')"
+	session=sessionmaker(bind=pgx)
+	nuSession=session()
+	nuSession.execute(ddql)
+	nuSession.commit()
+	nuSession.close()
+	pgx.dispose()
+	return None
+
 @r.remote
 def popCollections(icode,connexion,iFrame):
 	pgx=pgcnx(uri)
 	sqx=sqlCnx(connexion)
 	chunk=pdf([],columns=['model'])
 	trk=pdf([],columns=['collection','chunkstart','chunkfinish','rowversion','status','timestarted','timefinished'])
-	dbQL="SELECT '" +icode+ "' as instancecode,COLUMN_NAME as column_str,DATA_TYPE as datatype,TABLE_NAME as collection FROM INFORMATION_SCHEMA.COLUMNS ORDER BY TABLE_NAME DESC"
-	dbShape=rsq(dbQL,sqx)
-	dbShape['collection']=dbShape['collection'].str.lower()
-	dbShape['column_str']=dbShape['column_str'].str.lower()
-	dbShape.to_sql('tabshape',pgx,if_exists='append',index=False,schema='framework')
-	del dbShape
 	for idx,rowdata in iFrame.iterrows():
 		astart=dtm.utcnow()
 		noChange=True
@@ -57,12 +82,6 @@ def popCollections(icode,connexion,iFrame):
 		s_table=rowdata['s_table']
 		scols=rowdata['stg_cols']
 		rower=str(int(rowdata['rower']))
-		ddql=alchemyText(" SELECT framework.createcollection(:f_srcTab,:f_dstTab,:f_schema,:f_icode) ")
-		ddql=" SELECT framework.createcollection('" +rco+ "','" +s_table+ "','" +eaeSchema+ "','" +icode+ "')"
-		session=sessionmaker(bind=pgx)
-		ssn=session()
-		ssn.execute(ddql)
-		ssn.commit()
 		sql="SELECT '" +icode+ "' as instancecode," +scols+ ",CONVERT(BIGINT,sys_ROWVERSION) AS ROWER FROM " +rco+ "(NOLOCK) WHERE CONVERT(BIGINT,sys_ROWVERSION) > " +rower
 		for chunk in rsq(sql,sqx,chunksize=csize):
 			cstart=dtm.utcnow()
@@ -84,13 +103,18 @@ def popCollections(icode,connexion,iFrame):
 
 print('Active Instances Found: ' +str(len(insList)))
 if all([debug==False,len(insList)>0]):
-	pgx=pgcnx(uri)
-	session=sessionmaker(bind=pgx)
-	ssn=session()
-	ssn.execute(''' TRUNCATE TABLE framework.tabshape ''')
-	ssn.commit()
-	ssn.close()
-	pgx.dispose()
+	oneINS=insList[0]
+	copyCollectionShape(oneINS['icode'],oneINS['sqlConStr'],uri)
+	print('Table Shape copied... ')
+	oneFrame=colFrame.loc[(colFrame['icode']==oneINS['icode']) & (colFrame['instancetype']=='mssql'),['collection','s_table']]
+	collectionZIP=list(zip(oneFrame['collection'],oneFrame['s_table']))
+	print(collectionZIP)
+	for iZIP in collectionZIP:
+		iSQL_Tab,iStage_Tab=iZIP
+		objFrame.append(createCollections.remote(iSQL_Tab,iStage_Tab,eaeSchema,uri))
+	r.wait(objFrame)
+	objFrame.clear()
+'''
 	for ins in insList:
 		cnxStr=ins['sqlConStr']
 		instancecode=ins['icode']
@@ -107,3 +131,4 @@ elif debug:
 	print('Ready to DEBUG... ')
 else:
 	print('No Active Instances Found.')
+'''
