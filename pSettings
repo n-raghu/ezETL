@@ -1,0 +1,3 @@
+WAL senders
+fsync
+sequential commit off

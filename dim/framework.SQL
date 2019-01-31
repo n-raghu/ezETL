@@ -237,6 +237,6 @@ UPDATE framework.collectionmaps set stage_fields= 'fldUserDefinedCourseId,fldCou
 where collection='tbl_course_name' and instancetype='mssql';
 
 update framework.collectionmaps set isactive=false;
-update framework.collectionmaps set isactive=true where collection in ('tbl_customer_lookup');
+update framework.collectionmaps set isactive=true where collection in ('tbl_customer_lookup','tbl_department_lookup','tbl_region_lookup');
 
 select * from framework.activecollections();

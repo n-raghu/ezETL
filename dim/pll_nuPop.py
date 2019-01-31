@@ -86,7 +86,7 @@ def popCollections(icode,connexion,iFrame):
 		for chunk in rsq(sql,sqx,chunksize=csize):
 			cstart=dtm.utcnow()
 			chunk.to_sql(s_table,pgx,if_exists='append',index=False,schema=eaeSchema)
-			trk=trk.append({'collection':rco,'rowversion':chunk['rower'].max(),'chunkfinish':dtm.utcnow(),'chunkstart':cstart},ignore_index=True)
+			trk=trk.append({'status':False,'collection':rco,'rowversion':chunk['rower'].max(),'chunkfinish':dtm.utcnow(),'chunkstart':cstart},ignore_index=True)
 			noChange=False
 		trk.loc[(trk['collection']==rco),['status']]=True
 		trk.loc[(trk['collection']==rco),['timefinished']]=dtm.utcnow()
@@ -95,7 +95,6 @@ def popCollections(icode,connexion,iFrame):
 			utnow=dtm.utcnow()
 			trk=trk.append({'collection':rco,'rowversion':rower,'chunkfinish':utnow,'chunkstart':utnow,'status':True,'timestarted':astart,'timefinished':utnow},ignore_index=True)
 	del chunk
-	ssn.close()
 	sqx.close()
 	pgx.dispose()
 	trk['instancecode']=icode
@@ -108,13 +107,12 @@ if all([debug==False,len(insList)>0]):
 	print('Table Shape copied... ')
 	oneFrame=colFrame.loc[(colFrame['icode']==oneINS['icode']) & (colFrame['instancetype']=='mssql'),['collection','s_table']]
 	collectionZIP=list(zip(oneFrame['collection'],oneFrame['s_table']))
-	print(collectionZIP)
 	for iZIP in collectionZIP:
 		iSQL_Tab,iStage_Tab=iZIP
 		objFrame.append(createCollections.remote(iSQL_Tab,iStage_Tab,eaeSchema,uri))
 	r.wait(objFrame)
 	objFrame.clear()
-'''
+	print('Staging Tables created... ')
 	for ins in insList:
 		cnxStr=ins['sqlConStr']
 		instancecode=ins['icode']
@@ -131,4 +129,3 @@ elif debug:
 	print('Ready to DEBUG... ')
 else:
 	print('No Active Instances Found.')
-'''
