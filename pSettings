@@ -1,3 +1,4 @@
-WAL senders
+MAX_WAL senders
+WAL LEVEL
 fsync
 sequential commit off

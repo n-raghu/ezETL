@@ -9,10 +9,9 @@ CREATE TABLE framework.jobs(
   status BOOL,
   jobname TEXT,
   joborder SMALLINT,
-  biz_starttime TIMESTAMP WITHOUT TIME ZONE,
-  biz_endtime TIMESTAMP WITHOUT TIME ZONE,
+  biz_starttime TIME WITHOUT TIME ZONE,
+  biz_endtime TIME WITHOUT TIME ZONE,
   latency_bizhrs INT,
-  latency_weekend INT,
   latency_nonbizhrs INT
 );
 
@@ -108,7 +107,7 @@ FROM framework.instanceconfig fic
 JOIN framework.collectionmaps fcm ON fic.instancetype=fcm.instancetype
 	WHERE fcm.isactive=true AND fic.isactive=true;
 
-CREATE OR REPLACE FUNCTION framework.activecollections()
+CREATE OR REPLACE FUNCTION framework.live_instancecollections()
     RETURNS TABLE(icode TEXT,instancetype TEXT,collection TEXT,s_table TEXT,stg_cols TEXT,pkitab TEXT,pki_cols TEXT,rower BIGINT) AS
 $$
 BEGIN
@@ -152,6 +151,39 @@ $$
         EXECUTE qry;
         RETURN qry;
     END;
+$$
+LANGUAGE plpgsql VOLATILE
+COST 100;
+
+CREATE OR REPLACE FUNCTION framework.purgeduplicaterows(tabname TEXT, schemaname TEXT) RETURNS VOID AS
+$$
+    DECLARE
+        cols TEXT;
+        nustage TEXT=CONCAT(schemaname,'.',tabname,'_stg');
+        drpqry TEXT=CONCAT('DROP TABLE IF EXISTS ',nustage);
+        qry TEXT='CREATE TABLE ';
+    BEGIN
+        SELECT STRING_AGG(column_str,',') INTO cols FROM framework.tabshape WHERE collection=tabname;
+        qry=CONCAT(qry,nustage,' AS SELECT * FROM ',schemaname,'.',tabname,' GROUP BY instancecode,',cols,',rower');
+        EXECUTE drpqry;
+        EXECUTE qry;
+        EXECUTE CONCAT('DROP TABLE IF EXISTS ',schemaname,'.',tabname);
+        EXECUTE CONCAT('ALTER TABLE ',nustage,' RENAME TO ',tabname);
+    END;
+$$
+LANGUAGE plpgsql VOLATILE
+COST 100;
+
+CREATE OR REPLACE FUNCTION framework.jobs_to_run() RETURNS TABLE(jid TEXT) AS
+$$
+  SELECT * FROM framework.jobs WHERE CURRENT_TIME BETWEEN biz_starttime AND biz_endtime
+
+  SELECT CASE
+    WHEN EXTRACT(EPOCH FROM (NOW() -fwt.starttime)) > fwj.latency_bizhrs THEN true
+    WHEN fwt.starttime IS NULL THEN true ELSE false END AS booler
+FROM framework.tracker fwt
+JOIN framework.jobs fwj ON fwj.jobid=fwt.jobid
+
 $$
 LANGUAGE plpgsql VOLATILE
 COST 100;
@@ -233,10 +265,19 @@ SELECT true,'mssql','tbl_region_lookup','tbl_region_lookup','*','tbl_region_look
 UNION ALL
 SELECT true,'mssql','tbl_rulegroup_master','tbl_rulegroup_master','*','tbl_rulegroup_master_pki','intrulegroupid';
 
-UPDATE framework.collectionmaps set stage_fields= 'fldUserDefinedCourseId,fldCourseName,fldUsageLimitation,fldSendReminder1,fldSendReminder2,fldReminderDays1,fldReminderDays2,fldCourseDuration,fldSetLicense,fldDeliveryMethod,charCourseType,fldDisplayCourseid,fldOwnerCustId,intLicensePeriod,charCourseStatus,charAllowEnrollCourse,convert(VARCHAR,strPrerequisitesUserDefinedCourseIds) as strprerequisitesuserdefinedcourseids ,strCourseCurriculumCategory,intGroupId,bitSendCertificateOnCourseCompletion,strSignatureFilePath,strLeftSignatureFilePath,strHeaderSignatureFilePath,strFooterSignatureFilePath,charDisplaySurvey,charIsSurveyMandatory,charIsVersioningOff,charIsMultiModuleICCourse,charIsCertificationProgramEnable,decPrice,charLicensePeriodType,bitIsEnableLicensePeriod,intCertificationValidPeriod,charCertificationCriteriaField,charIsSendReminderAndReEnrollInCertification,intFirstCertificationReminder,charReEnrollInCertification,charIsSecondCertificationReminderEnable,intSecondCertificationReminder,charIsThirdCertificationReminderEnable,intThirdCertificationReminder,charIsGracePeriodEnable,intGracePeriodDays,charIsSendGracePeriodStartNotification,charSendMessageToUser,charSendMessageToManager,charSendMessageToOrgAdministrator,CharIsSendMessageToOtherEnable,charSendMessageToOther,strUserDefinedCourseIDToEnrollAfterExpiration,charAllowCourseAccessAfterExpirationAndGracePeriod,bitIsLockEnabled,dtmCourseDurationSpecific,bitPastDueSendEmailUsr,bitPastDueLockCourse,bitPastDueSendEmailMgr,charPastDueChangeStatus,IsScormEngineCourse,charSendExpiredMessage,bitSendCertificateHeaderText,bitSendCertificateFooterText,bitEnablePastDueChangeStatus,charIsSendExpiredMessage,charIsSkipCourseStatusScreen,EmbedCount,DisplayCertificateOnUserTranscript,strCourseDirectoryName,charWindowSize,intWindowWidth,intWindowHeight,bitPreventWindowResize,bitIsMEEnable,bitIsCertificationEnable,bitIsAssignedViaOtherEnrollment,IsIELSCORMCourse,bitIfSAChangeLicense,bitIsHistorical,bitIsEnableVolumeDiscount,bitIsSendLicenseExpirationMail,intDaysBeforeLicenseExpiration,tinyintIEngineVersion,dtmCreatedDate,bitIsNew,chariEngineCourseType,bitIsLogoBranding,bitIsPolicyBranding,charDueDateUserProfileField,strCopiedFromUserDefinedCourseID,charCourseImportType,bitIsMobileEnabled,bitIsMobileReady,bitIsMobileOffline,bitIsCyQ'
-where collection='tbl_course_name' and instancetype='mssql';
+UPDATE framework.collectionmaps SET stage_fields= 'fldUserDefinedCourseId,fldCourseName,fldUsageLimitation,fldSendReminder1,fldSendReminder2,fldReminderDays1,fldReminderDays2,fldCourseDuration,fldSetLicense,fldDeliveryMethod,charCourseType,fldDisplayCourseid,fldOwnerCustId,intLicensePeriod,charCourseStatus,charAllowEnrollCourse,convert(VARCHAR,strPrerequisitesUserDefinedCourseIds) as strprerequisitesuserdefinedcourseids ,strCourseCurriculumCategory,intGroupId,bitSendCertificateOnCourseCompletion,strSignatureFilePath,strLeftSignatureFilePath,strHeaderSignatureFilePath,strFooterSignatureFilePath,charDisplaySurvey,charIsSurveyMandatory,charIsVersioningOff,charIsMultiModuleICCourse,charIsCertificationProgramEnable,decPrice,charLicensePeriodType,bitIsEnableLicensePeriod,intCertificationValidPeriod,charCertificationCriteriaField,charIsSendReminderAndReEnrollInCertification,intFirstCertificationReminder,charReEnrollInCertification,charIsSecondCertificationReminderEnable,intSecondCertificationReminder,charIsThirdCertificationReminderEnable,intThirdCertificationReminder,charIsGracePeriodEnable,intGracePeriodDays,charIsSendGracePeriodStartNotification,charSendMessageToUser,charSendMessageToManager,charSendMessageToOrgAdministrator,CharIsSendMessageToOtherEnable,charSendMessageToOther,strUserDefinedCourseIDToEnrollAfterExpiration,charAllowCourseAccessAfterExpirationAndGracePeriod,bitIsLockEnabled,dtmCourseDurationSpecific,bitPastDueSendEmailUsr,bitPastDueLockCourse,bitPastDueSendEmailMgr,charPastDueChangeStatus,IsScormEngineCourse,charSendExpiredMessage,bitSendCertificateHeaderText,bitSendCertificateFooterText,bitEnablePastDueChangeStatus,charIsSendExpiredMessage,charIsSkipCourseStatusScreen,EmbedCount,DisplayCertificateOnUserTranscript,strCourseDirectoryName,charWindowSize,intWindowWidth,intWindowHeight,bitPreventWindowResize,bitIsMEEnable,bitIsCertificationEnable,bitIsAssignedViaOtherEnrollment,IsIELSCORMCourse,bitIfSAChangeLicense,bitIsHistorical,bitIsEnableVolumeDiscount,bitIsSendLicenseExpirationMail,intDaysBeforeLicenseExpiration,tinyintIEngineVersion,dtmCreatedDate,bitIsNew,chariEngineCourseType,bitIsLogoBranding,bitIsPolicyBranding,charDueDateUserProfileField,strCopiedFromUserDefinedCourseID,charCourseImportType,bitIsMobileEnabled,bitIsMobileReady,bitIsMobileOffline,bitIsCyQ'
+WHERE collection='tbl_course_name' AND instancetype='mssql';
+
+INSERT INTO framework.jobs(jobid,status,jobname,joborder,biz_starttime,biz_endtime,latency_bizhrs,latency_nonbizhrs)
+SELECT 'popStagingTables',true,'Staging Tables',1,'09:00:00','21:00:00',600,3600
+UNION ALL
+SELECT 'purgeRedundantData',true,'Purge Redundant Data',2,'09:00:00','21:00:00',3600,7200
+UNION ALL
+SELECT 'stagePKIFields',true,'Get Primary Key Index',3,'09:00:00','21:00:00',600,3600
+UNION ALL
+SELECT 'stagePKIFields',true,'Get Primary Key Index',3,'09:00:00','21:00:00',600,3600;
 
 update framework.collectionmaps set isactive=false;
 update framework.collectionmaps set isactive=true where collection in ('tbl_customer_lookup','tbl_department_lookup','tbl_region_lookup');
 
-select * from framework.activecollections();
+select * from framework.live_instancecollections();
