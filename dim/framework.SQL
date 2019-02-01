@@ -174,16 +174,25 @@ $$
 LANGUAGE plpgsql VOLATILE
 COST 100;
 
-CREATE OR REPLACE FUNCTION framework.jobs_to_run() RETURNS TABLE(jid TEXT) AS
+CREATE OR REPLACE FUNCTION framework.launchpad() RETURNS TABLE(jid TEXT,jstat BOOL) AS
 $$
-  SELECT * FROM framework.jobs WHERE CURRENT_TIME BETWEEN biz_starttime AND biz_endtime
+DROP TABLE IF EXISTS bizschedules;
+BEGIN;
+CREATE TEMP TABLE bizschedules ON COMMIT DROP AS
+SELECT jobid,latency_bizhrs AS latency,0::int lastexecution
+        ,CASE WHEN CURRENT_TIME BETWEEN biz_starttime AND biz_endtime THEN 'biz' ELSE 'non_biz' END AS job_mode
+    FROM framework.jobs
+        WHERE status=true;
 
-  SELECT CASE
-    WHEN EXTRACT(EPOCH FROM (NOW() -fwt.starttime)) > fwj.latency_bizhrs THEN true
-    WHEN fwt.starttime IS NULL THEN true ELSE false END AS booler
+UPDATE bizschedules AS bzs SET latency=fwj.latency_nonbizhrs
+FROM framework.jobs fwj
+WHERE bzs.jobid=fwj.jobid AND bzs.job_mode='non_biz';
+
+UPDATE bizschedules AS bzs SET lastexecution=EXTRACT(EPOCH FROM CURRENT_TIMESTAMP -fwt.starttime)
 FROM framework.tracker fwt
-JOIN framework.jobs fwj ON fwj.jobid=fwt.jobid
-
+WHERE bzs.jobid=fwt.jobid;
+SELECT * FROM bizschedules;
+END;
 $$
 LANGUAGE plpgsql VOLATILE
 COST 100;
