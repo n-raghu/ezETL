@@ -1,0 +1,22 @@
+eaedb:
+  port: 5432
+  host: 10.200.0.235
+  uid: reportingdbuser
+  pwd: reportingdbuser
+  db: reportingdb
+  schema: nudev
+
+pandas:
+  tinyset: 75000
+  bigset: 1000000
+  parallelism: True
+
+drivers:
+  mssql: MSSQL-17
+  mysql: native
+
+log_directory: dimLogs
+
+smtp:
+  server: 172.16.3.129
+  from: EAE Data Integration <eae@inspireme.com>

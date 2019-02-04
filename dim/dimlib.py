@@ -7,7 +7,7 @@ from sqlalchemy.sql import text as alchemyText
 from datetime import datetime as dtm
 from sqlalchemy.orm import sessionmaker
 
-with open('dimConfig.yaml') as ymlFile:
+with open('dimConfig.yml') as ymlFile:
 	cfg=y.load(ymlFile)
 
 def dwCNX(tinyset=False):

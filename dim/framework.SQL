@@ -101,6 +101,9 @@ CREATE TABLE framework.tabshapetraces(
   tabquery TEXT
 );
 
+CREATE TABLE framework.volatiletracker AS
+SELECT * FROM framework.tracker;
+
 CREATE TABLE framework.volatilecollections AS
 SELECT fic.instancecode,fic.instancetype,fcm.collection,fcm.stage_table,fcm.stage_fields,fcm.pki_table,fcm.pki_fields ,0::bigint as rover
 FROM framework.instanceconfig fic
@@ -174,25 +177,38 @@ $$
 LANGUAGE plpgsql VOLATILE
 COST 100;
 
-CREATE OR REPLACE FUNCTION framework.launchpad() RETURNS TABLE(jid TEXT,jstat BOOL) AS
+CREATE OR REPLACE FUNCTION framework.launchpad() RETURNS TABLE(jid text) AS
 $$
-DROP TABLE IF EXISTS bizschedules;
-BEGIN;
-CREATE TEMP TABLE bizschedules ON COMMIT DROP AS
-SELECT jobid,latency_bizhrs AS latency,0::int lastexecution
-        ,CASE WHEN CURRENT_TIME BETWEEN biz_starttime AND biz_endtime THEN 'biz' ELSE 'non_biz' END AS job_mode
-    FROM framework.jobs
-        WHERE status=true;
+	DECLARE
+		ppid BIGINT=(SELECT COALESCE(MAX(PID),0) FROM framework.tracker);
+	BEGIN
+		IF (ppid<1) THEN
+			RETURN QUERY SELECT DISTINCT jobid FROM framework.jobs;
+		END IF;
+		CREATE TEMP TABLE bizschedules ON COMMIT DROP AS
+		SELECT DISTINCT jobid,latency_bizhrs AS latency,0::int lastexecution,joborder
+		,CASE WHEN CURRENT_TIME BETWEEN biz_starttime AND biz_endtime THEN 'biz' ELSE 'non_biz' END AS job_mode
+		FROM framework.jobs
+			WHERE status=true;
+		UPDATE bizschedules AS bzs SET latency=fwj.latency_nonbizhrs
+		FROM framework.jobs fwj
+			WHERE bzs.jobid=fwj.jobid AND bzs.job_mode='non_biz';
+		UPDATE bizschedules SET lastexecution=(
+			SELECT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP -MIN(starttime)) FROM framework.tracker WHERE PID=ppid);
+		RETURN QUERY SELECT jobid FROM bizschedules WHERE lastexecution>latency ORDER BY joborder;
+	END;
+$$
+LANGUAGE plpgsql VOLATILE
+COST 100;
 
-UPDATE bizschedules AS bzs SET latency=fwj.latency_nonbizhrs
-FROM framework.jobs fwj
-WHERE bzs.jobid=fwj.jobid AND bzs.job_mode='non_biz';
-
-UPDATE bizschedules AS bzs SET lastexecution=EXTRACT(EPOCH FROM CURRENT_TIMESTAMP -fwt.starttime)
-FROM framework.tracker fwt
-WHERE bzs.jobid=fwt.jobid;
-SELECT * FROM bizschedules;
-END;
+CREATE OR REPLACE FUNCTION framework.updatetracker() RETURNS VOID AS
+$$
+BEGIN
+    UPDATE framework.tracker AS fwt SET starttime=stg.starttime,endtime=stg.endtime,notes=stg.notes
+    FROM (SELECT *,RANK() OVER(PARTITION BY jobid ORDER BY endtime DESC) AS nrank
+        FROM framework.volatiletracker)stg
+        WHERE fwt.pid=stg.pid AND fwt.jobid=stg.jobid AND nrank=1;
+END
 $$
 LANGUAGE plpgsql VOLATILE
 COST 100;
@@ -278,15 +294,13 @@ UPDATE framework.collectionmaps SET stage_fields= 'fldUserDefinedCourseId,fldCou
 WHERE collection='tbl_course_name' AND instancetype='mssql';
 
 INSERT INTO framework.jobs(jobid,status,jobname,joborder,biz_starttime,biz_endtime,latency_bizhrs,latency_nonbizhrs)
-SELECT 'popStagingTables',true,'Staging Tables',1,'09:00:00','21:00:00',600,3600
+SELECT 'popStagingTables',true,'Staging Tables',1,'9:00:00'::TIME,'21:00:00'::TIME,600,3600
 UNION ALL
-SELECT 'purgeRedundantData',true,'Purge Redundant Data',2,'09:00:00','21:00:00',3600,7200
+SELECT 'stagePKIFields',true,'Get Primary Key Index',3,'18:00:00'::TIME,'21:00:00'::TIME,600,3600
 UNION ALL
-SELECT 'stagePKIFields',true,'Get Primary Key Index',3,'09:00:00','21:00:00',600,3600
-UNION ALL
-SELECT 'stagePKIFields',true,'Get Primary Key Index',3,'09:00:00','21:00:00',600,3600;
+SELECT 'purgeRedundantData',true,'Purge duplicate data',2,'9:00:00'::TIME,'21:00:00'::TIME,600,3600;
 
 update framework.collectionmaps set isactive=false;
-update framework.collectionmaps set isactive=true where collection in ('tbl_customer_lookup','tbl_department_lookup','tbl_region_lookup');
+update framework.collectionmaps set isactive=true where collection in ('tbl_customer_lookup','tbl_region_lookup');
 
 select * from framework.live_instancecollections();
