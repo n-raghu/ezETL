@@ -17,6 +17,13 @@ drivers:
 
 log_directory: dimLogs
 
+agent:
+  lowdelay: 59
+  highdelay: 599
+  defer: False
+  kill: False
+
 smtp:
   server: 172.16.3.129
   from: EAE Data Integration <eae@inspireme.com>
+  enable: true

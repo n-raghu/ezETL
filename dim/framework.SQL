@@ -5,8 +5,9 @@ CREATE SCHEMA nudev;
 CREATE SCHEMA framework;
 
 CREATE TABLE framework.jobs(
-  jobid TEXT,
   status BOOL,
+  jobid TEXT,
+  launcher TEXT,
   jobname TEXT,
   joborder SMALLINT,
   biz_starttime TIME WITHOUT TIME ZONE,
@@ -73,6 +74,14 @@ CREATE TABLE framework.collectionmaps(
   pki_fields TEXT
 );
 
+CREATE TABLE framework.errorlogs(
+  pid BIGINT,
+  jobid TEXT,
+  error TEXT,
+  error_time TIMESTAMP WITHOUT TIME ZONE,
+  db_timestamp TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE framework.chunktraces(
   logid INT GENERATED ALWAYS AS IDENTITY,
   status BOOL,
@@ -88,6 +97,7 @@ CREATE TABLE framework.chunktraces(
 CREATE TABLE framework.cachetraces(
   cacheid BIGINT GENERATED ALWAYS AS IDENTITY,
   pid BIGINT,
+  status BOOL,
   instancecode TEXT,
   collection TEXT,
   primekeys TEXT,
@@ -177,16 +187,17 @@ $$
 LANGUAGE plpgsql VOLATILE
 COST 100;
 
-CREATE OR REPLACE FUNCTION framework.launchpad() RETURNS TABLE(jid text) AS
+CREATE OR REPLACE FUNCTION framework.launchpad() RETURNS TABLE(job_launcher TEXT,jid TEXT,job_order SMALLINT) AS
 $$
 	DECLARE
 		ppid BIGINT=(SELECT COALESCE(MAX(PID),0) FROM framework.tracker);
 	BEGIN
 		IF (ppid<1) THEN
-			RETURN QUERY SELECT DISTINCT jobid FROM framework.jobs;
+      TRUNCATE TABLE framework.volatiletracker;
+			RETURN QUERY (SELECT DISTINCT launcher,jobid,joborder FROM framework.jobs);
 		END IF;
 		CREATE TEMP TABLE bizschedules ON COMMIT DROP AS
-		SELECT DISTINCT jobid,latency_bizhrs AS latency,0::int lastexecution,joborder
+		SELECT DISTINCT jobid,latency_bizhrs AS latency,0::int lastexecution,joborder,launcher
 		,CASE WHEN CURRENT_TIME BETWEEN biz_starttime AND biz_endtime THEN 'biz' ELSE 'non_biz' END AS job_mode
 		FROM framework.jobs
 			WHERE status=true;
@@ -195,7 +206,10 @@ $$
 			WHERE bzs.jobid=fwj.jobid AND bzs.job_mode='non_biz';
 		UPDATE bizschedules SET lastexecution=(
 			SELECT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP -MIN(starttime)) FROM framework.tracker WHERE PID=ppid);
-		RETURN QUERY SELECT jobid FROM bizschedules WHERE lastexecution>latency ORDER BY joborder;
+    IF (SELECT COUNT(*)>0 FROM bizschedules WHERE lastexecution>latency) THEN
+      TRUNCATE TABLE framework.volatiletracker;
+    END IF;
+		RETURN QUERY (SELECT launcher,jobid,joborder FROM bizschedules WHERE lastexecution>latency);
 	END;
 $$
 LANGUAGE plpgsql VOLATILE
@@ -293,12 +307,16 @@ SELECT true,'mssql','tbl_rulegroup_master','tbl_rulegroup_master','*','tbl_ruleg
 UPDATE framework.collectionmaps SET stage_fields= 'fldUserDefinedCourseId,fldCourseName,fldUsageLimitation,fldSendReminder1,fldSendReminder2,fldReminderDays1,fldReminderDays2,fldCourseDuration,fldSetLicense,fldDeliveryMethod,charCourseType,fldDisplayCourseid,fldOwnerCustId,intLicensePeriod,charCourseStatus,charAllowEnrollCourse,convert(VARCHAR,strPrerequisitesUserDefinedCourseIds) as strprerequisitesuserdefinedcourseids ,strCourseCurriculumCategory,intGroupId,bitSendCertificateOnCourseCompletion,strSignatureFilePath,strLeftSignatureFilePath,strHeaderSignatureFilePath,strFooterSignatureFilePath,charDisplaySurvey,charIsSurveyMandatory,charIsVersioningOff,charIsMultiModuleICCourse,charIsCertificationProgramEnable,decPrice,charLicensePeriodType,bitIsEnableLicensePeriod,intCertificationValidPeriod,charCertificationCriteriaField,charIsSendReminderAndReEnrollInCertification,intFirstCertificationReminder,charReEnrollInCertification,charIsSecondCertificationReminderEnable,intSecondCertificationReminder,charIsThirdCertificationReminderEnable,intThirdCertificationReminder,charIsGracePeriodEnable,intGracePeriodDays,charIsSendGracePeriodStartNotification,charSendMessageToUser,charSendMessageToManager,charSendMessageToOrgAdministrator,CharIsSendMessageToOtherEnable,charSendMessageToOther,strUserDefinedCourseIDToEnrollAfterExpiration,charAllowCourseAccessAfterExpirationAndGracePeriod,bitIsLockEnabled,dtmCourseDurationSpecific,bitPastDueSendEmailUsr,bitPastDueLockCourse,bitPastDueSendEmailMgr,charPastDueChangeStatus,IsScormEngineCourse,charSendExpiredMessage,bitSendCertificateHeaderText,bitSendCertificateFooterText,bitEnablePastDueChangeStatus,charIsSendExpiredMessage,charIsSkipCourseStatusScreen,EmbedCount,DisplayCertificateOnUserTranscript,strCourseDirectoryName,charWindowSize,intWindowWidth,intWindowHeight,bitPreventWindowResize,bitIsMEEnable,bitIsCertificationEnable,bitIsAssignedViaOtherEnrollment,IsIELSCORMCourse,bitIfSAChangeLicense,bitIsHistorical,bitIsEnableVolumeDiscount,bitIsSendLicenseExpirationMail,intDaysBeforeLicenseExpiration,tinyintIEngineVersion,dtmCreatedDate,bitIsNew,chariEngineCourseType,bitIsLogoBranding,bitIsPolicyBranding,charDueDateUserProfileField,strCopiedFromUserDefinedCourseID,charCourseImportType,bitIsMobileEnabled,bitIsMobileReady,bitIsMobileOffline,bitIsCyQ'
 WHERE collection='tbl_course_name' AND instancetype='mssql';
 
-INSERT INTO framework.jobs(jobid,status,jobname,joborder,biz_starttime,biz_endtime,latency_bizhrs,latency_nonbizhrs)
-SELECT 'popStagingTables',true,'Staging Tables',1,'9:00:00'::TIME,'21:00:00'::TIME,600,3600
+INSERT INTO framework.jobs(jobid,status,jobname,joborder,biz_starttime,biz_endtime,latency_bizhrs,latency_nonbizhrs,launcher)
+SELECT 'popStagingTables.py',true,'Staging Tables',1,'9:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
 UNION ALL
-SELECT 'stagePKIFields',true,'Get Primary Key Index',3,'18:00:00'::TIME,'21:00:00'::TIME,600,3600
+SELECT 'stagePKIFields.py',false,'Get Primary Key Index',3,'18:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
 UNION ALL
-SELECT 'purgeRedundantData',true,'Purge duplicate data',2,'9:00:00'::TIME,'21:00:00'::TIME,600,3600;
+SELECT 'git/bi-eae/elt_job/build/IEL_BI/job_Load_Staging_to_DV/job_Load_Staging_to_DV_run.sh',false,'Build Vault',4,'18:00:00'::TIME,'21:00:00'::TIME,600,3600,'sh'
+UNION ALL
+SELECT 'git/bi-eae/elt_job/build/IEL_BI/job_Drop_Staging_Tables/job_Drop_Staging_Tables_run.sh',false,'PURGE STAGING',5,'18:00:00'::TIME,'21:00:00'::TIME,600,3600,'sh'
+UNION ALL
+SELECT 'purgeRedundantData.py',false,'Purge duplicate data',2,'9:00:00'::TIME,'21:00:00'::TIME,600,3600,'python';
 
 update framework.collectionmaps set isactive=false;
 update framework.collectionmaps set isactive=true where collection in ('tbl_customer_lookup','tbl_region_lookup');

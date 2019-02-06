@@ -1,11 +1,16 @@
-import yaml as y
-from collections import OrderedDict as odict
-from pypyodbc import connect as sqlCnx
-from pandas import read_sql_query as rsq,DataFrame as pdf
-from sqlalchemy import create_engine as pgcnx
-from sqlalchemy.sql import text as alchemyText
-from datetime import datetime as dtm
-from sqlalchemy.orm import sessionmaker
+try:
+	import yaml as y
+	from collections import OrderedDict as odict
+	from pypyodbc import connect as sqlCnx
+	from pandas import read_sql_query as rsq,DataFrame as pdf
+	from sqlalchemy import create_engine as pgcnx
+	from sqlalchemy.sql import text as alchemyText
+	from pandas.core.groupby.groupby import DataError
+	import ray as r
+	from datetime import datetime as dtm
+	from sqlalchemy.orm import sessionmaker
+except ImportError:
+	raise ImportError(' Module(s) not installed...')
 
 with open('dimConfig.yml') as ymlFile:
 	cfg=y.load(ymlFile)
@@ -19,9 +24,6 @@ def dwCNX(tinyset=False):
 		csize=cfg['pandas']['bigset']
 	return csize,eaeSchema,uri
 
-if(cfg['pandas']['parallelism']):
-	import ray as r
-
 def objects_mssql(urx):
 	insList_io=[]
 	cnxPGX=pgcnx(urx)
@@ -34,3 +36,11 @@ def objects_mssql(urx):
 		insDict['sqlConStr']='DRIVER={'+cfg['drivers']['mssql']+'};SERVER='+dat['hostip']+','+str(int(dat['hport']))+';DATABASE='+dat['dbname']+';UID='+dat['uid']+';PWD='+dat['pwd']
 		insList_io.append(insDict)
 	return odict([('frame',colFrame_io),('insList',insList_io)])
+
+def logError(pid,jobid,err_message,uri):
+	pgx=pgcnx(uri)
+	err_json={'pid':[pid],'jobid':[jobid],'error':[err_message],'error_time':[dtm.utcnow()]}
+	errFrame=pdf.from_dict(err_json)
+	errFrame.to_sql('errorlogs',pgx,if_exists='append',index=False,schema='framework')
+	pgx.dispose()
+	return None

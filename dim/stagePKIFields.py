@@ -14,7 +14,7 @@ r.init()
 csize,eaeSchema,uri=dwCNX(tinyset=False)
 print(uri)
 objFrame=[]
-tracker=pdf([],columns=['instancecode','collection','primekeys','kount','starttime','endtime'])
+tracker=pdf([],columns=['instancecode','collection','primekeys','kount','starttime','endtime','status'])
 
 mssql_dict=objects_mssql(uri)
 insList=mssql_dict['insList']
@@ -23,8 +23,13 @@ colFrame=mssql_dict['frame']
 @r.remote
 def popCollections(icode,connexion,iFrame):
 	pgx=pgcnx(uri)
-	sqx=sqlCnx(connexion)
-	trk=pdf([],columns=['collection','primekeys','kount','starttime','endtime'])
+	trk=pdf([],columns=['collection','primekeys','kount','starttime','endtime','status'])
+	try:
+		sqx=sqlCnx(connexion)
+	except podbc.Error as err:
+		print('Error Connecting to ' +icode+ ' instance. See Error Logs for more details. ')
+		logError(pid,'stagePKIFields',err,uri)
+		return trk
 	for idx,rowdata in iFrame.iterrows():
 		rco=rowdata['collection']
 		cachecollection=rowdata['pkitab']
@@ -32,10 +37,13 @@ def popCollections(icode,connexion,iFrame):
 		knt=0
 		stime=dtm.utcnow()
 		sql="SELECT '" +icode+ "' as instancecode," +primeKeys+ " FROM " +rco+ "(NOLOCK) "
-		for chunk in rsq(sql,sqx,chunksize=csize):
-			chunk.to_sql(cachecollection,pgx,if_exists='append',index=False,schema=eaeSchema)
-			knt+=len(chunk)
-		trk=trk.append({'collection':rco,'kount':knt,'primekeys':primeKeys,'starttime':stime,'endtime':dtm.utcnow()},sort=False,ignore_index=True)
+		try:
+			for chunk in rsq(sql,sqx,chunksize=csize):
+				chunk.to_sql(cachecollection,pgx,if_exists='append',index=False,schema=eaeSchema)
+				knt+=len(chunk)
+		except (DataError,AssertionError,ValueError,IOError,IndexError) as err:
+			trk=trk.append({'status':False,'collection':rco,'kount':knt,'primekeys':primeKeys,'starttime':stime,'endtime':dtm.utcnow()},sort=False,ignore_index=True)
+		trk=trk.append({'status':True,'collection':rco,'kount':knt,'primekeys':primeKeys,'starttime':stime,'endtime':dtm.utcnow()},sort=False,ignore_index=True)
 	del chunk
 	sqx.close()
 	pgx.dispose()

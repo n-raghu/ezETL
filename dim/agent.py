@@ -1,14 +1,21 @@
 import subprocess as sbp
-from dimlib import *
+from dimlib import dwCNX,pdf,y,pgcnx,dtm,sessionmaker
 import smtplib
 from os.path import basename
+from time import sleep as ziz
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import COMMASPACE, formatdate
 
-log_dir='dimLogs/'
-smtpServer='172.16.3.129'
+print('Modules Imported...')
+intLowLatencyStartTime=5
+intHighLatencyStartTime=23
+
+def getConfig():
+    with open('dimConfig.yml') as yFile:
+        cfg=y.load(yFile)
+    return cfg['log_directory'],cfg['agent'],cfg['smtp']
 
 def mailStakeHolders(file_name_path,smtp_server,urx):
     pgx=pgcnx(urx)
@@ -40,34 +47,55 @@ def upsertPID(pid,uri,jobList):
     pgx.dispose()
     return pidFrame
 
-csize,eaeSchema,uri=dwCNX(tinyset=True)
-pgx=pgcnx(uri)
-jobsNow=[job['jid'] for job in list(pgx.execute(''' SELECT * FROM framework.launchpad() '''))]
-
-if len(jobsNow)>0:
-    pid=int(dtm.timestamp(dtm.utcnow()))
-    pidFrame=upsertPID(pid,uri,jobsNow)
+while True:
+    log_dir,agentCFG,smtpCFG=getConfig()
+    if agentCFG['kill']:
+        print('Received Agent Terminate')
+        break
+    elif agentCFG['defer']:
+        ziz(59)
+        continue
+    csize,eaeSchema,uri=dwCNX(tinyset=True)
     pgx=pgcnx(uri)
-    for job in jobsNow:
-        jStartTime=dtm.utcnow()
-        proc=sbp.Popen(['python',job+'.py',str(pid)],stdout=sbp.PIPE,stderr=sbp.PIPE)
-        proc.wait()
-        pidFrame.loc[pidFrame['jobid']==job,['endtime']]=dtm.utcnow()
-        pidFrame.loc[pidFrame['jobid']==job,['starttime']]=jStartTime
-        pidFrame.loc[pidFrame['jobid']==job,['notes']]='Job completed...'
-        pidFrame.to_sql('volatiletracker',pgx,if_exists='append',index=False,schema='framework')
-        stdio,stder=proc.communicate()
-        pidFile=log_dir+str(pid)
+    jobsNow=list(pgx.execute(''' SELECT * FROM framework.launchpad() ORDER BY 3 '''))
+    if len(jobsNow)>0:
+        pid=int(dtm.timestamp(dtm.utcnow()))
+        jList=[j['jid'] for j in jobsNow]
+        pidFrame=upsertPID(pid,uri,jList)
+        pgx=pgcnx(uri)
+        pidFile=log_dir+'/'+str(pid)
         with open(pidFile,'w+') as pFile:
-            pFile.write(job)
-            pFile.write('Console OUT')
-            pFile.write(stdio.decode())
-            pFile.write('Console ERR')
-            pFile.write(stder.decode())
-    session=sessionmaker(bind=pgx)
-    nuSession=session()
-    nuSession.execute(''' SELECT framework.updatetracker() ''')
-    nuSession.commit()
-    nuSession.close()
-
-pgx.dispose()
+            pFile.write(str(dtm.utcnow())+ ' <<< Cycle Started\n')
+        for job in jobsNow:
+            jStartTime=dtm.utcnow()
+            proc=sbp.Popen([job['job_launcher'],job['jid'],str(pid)],stdout=sbp.PIPE,stderr=sbp.PIPE)
+            proc.wait()
+            pidFrame.loc[pidFrame['jobid']==job['jid'],['endtime']]=dtm.utcnow()
+            pidFrame.loc[pidFrame['jobid']==job['jid'],['starttime']]=jStartTime
+            pidFrame.loc[pidFrame['jobid']==job['jid'],['notes']]='Job completed...'
+            pidFrame.to_sql('volatiletracker',pgx,if_exists='append',index=False,schema='framework')
+            stdio,stder=proc.communicate()
+            with open(pidFile,'a+') as pFile:
+                pFile.write(job['jid'])
+                pFile.write(stdio.decode())
+                pFile.write('\n')
+                pFile.write(stder.decode())
+        with open(pidFile,'a+') as pFile:
+            pFile.write('\n')
+            pFile.write(str(dtm.utcnow())+ ' <<< Cycle completed')
+        print(pidFrame)
+        session=sessionmaker(bind=pgx)
+        nuSession=session()
+        nuSession.execute(''' SELECT framework.updatetracker() ''')
+        nuSession.commit()
+        nuSession.close()
+        pgx.dispose()
+        if smtpCFG['enable']:
+            mailStakeHolders(pidFile,smtpCFG['server'],uri)
+        print(str(dtm.utcnow())+ ' Cycle Completed...')
+    else:
+        print('No JOBS in this schedule')
+    if intLowLatencyStartTime < dtm.utcnow().hour < intHighLatencyStartTime:
+        ziz(agentCFG['lowdelay'])
+    else:
+        ziz(agentCFG['highdelay'])

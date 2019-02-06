@@ -10,7 +10,7 @@ else:
 
 from dimlib import *
 
-r.init()
+r.init(include_webui=False)
 csize,eaeSchema,uri=dwCNX(tinyset=True)
 tracker=pdf([],columns=['status','instancecode','collection','timestarted','timefinished','chunkstart','chunkfinish','rowversion'])
 objFrame=[]
@@ -72,9 +72,14 @@ def createCollections(sql_table,stage_table,schema_name,uri):
 @r.remote
 def popCollections(icode,connexion,iFrame):
 	pgx=pgcnx(uri)
-	sqx=sqlCnx(connexion)
-	chunk=pdf([],columns=['model'])
 	trk=pdf([],columns=['collection','chunkstart','chunkfinish','rowversion','status','timestarted','timefinished'])
+	try:
+		sqx=sqlCnx(connexion)
+	except podbc.Error as err:
+		print('Error Connecting to ' +icode+ ' instance. See Error Logs for more details. ')
+		logError(pid,'popStagingTables',err,uri)
+		return trk
+	chunk=pdf([],columns=['model'])
 	for idx,rowdata in iFrame.iterrows():
 		astart=dtm.utcnow()
 		noChange=True
