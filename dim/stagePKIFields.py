@@ -41,9 +41,11 @@ def popCollections(icode,connexion,iFrame):
 			for chunk in rsq(sql,sqx,chunksize=csize):
 				chunk.to_sql(cachecollection,pgx,if_exists='append',index=False,schema=eaeSchema)
 				knt+=len(chunk)
+			trk=trk.append({'status':True,'collection':rco,'kount':knt,'primekeys':primeKeys,'starttime':stime,'endtime':dtm.utcnow()},sort=False,ignore_index=True)
 		except (DataError,AssertionError,ValueError,IOError,IndexError) as err:
 			trk=trk.append({'status':False,'collection':rco,'kount':knt,'primekeys':primeKeys,'starttime':stime,'endtime':dtm.utcnow()},sort=False,ignore_index=True)
-		trk=trk.append({'status':True,'collection':rco,'kount':knt,'primekeys':primeKeys,'starttime':stime,'endtime':dtm.utcnow()},sort=False,ignore_index=True)
+			logError(pid,'stagePKIFields','For Chunk ' +str(rco)+ ' ' +str(err),uri)
+			continue
 	del chunk
 	sqx.close()
 	pgx.dispose()

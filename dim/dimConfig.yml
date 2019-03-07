@@ -4,18 +4,19 @@ eaedb:
   uid: reportingdbuser
   pwd: reportingdbuser
   db: reportingdb
-  schema: nudev
+  schema: staging
+
+migrations: /dim/migrations
+log_directory: dimLogs
 
 pandas:
   tinyset: 75000
-  bigset: 1000000
+  bigset: 500000
   parallelism: True
 
 drivers:
   mssql: MSSQL-17
   mysql: native
-
-log_directory: dimLogs
 
 agent:
   lowdelay: 59

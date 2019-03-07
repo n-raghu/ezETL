@@ -4,11 +4,13 @@ try:
 	from pypyodbc import connect as sqlCnx
 	from pandas import read_sql_query as rsq,DataFrame as pdf
 	from sqlalchemy import create_engine as pgcnx
+	from psycopg2 import connect as pgconnect
 	from sqlalchemy.sql import text as alchemyText
 	from pandas.core.groupby.groupby import DataError
 	import ray as r
 	from datetime import datetime as dtm
 	from sqlalchemy.orm import sessionmaker
+	from io import StringIO
 except ImportError:
 	raise ImportError(' Module(s) not installed...')
 
@@ -33,7 +35,7 @@ def objects_mssql(urx):
 		dat=odict(cnx)
 		insDict=odict()
 		insDict['icode']=dat['instancecode']
-		insDict['sqlConStr']='DRIVER={'+cfg['drivers']['mssql']+'};SERVER='+dat['hostip']+','+str(int(dat['hport']))+';DATABASE='+dat['dbname']+';UID='+dat['uid']+';PWD='+dat['pwd']
+		insDict['sqlConStr']='DRIVER={'+cfg['drivers']['mssql']+'};SERVER='+dat['hostip']+','+str(int(dat['hport']))+';DATABASE='+dat['dbname']+';UID='+dat['uid']+';PWD='+dat['pwd']+';MARS_Connection=Yes'
 		insList_io.append(insDict)
 	return odict([('frame',colFrame_io),('insList',insList_io)])
 

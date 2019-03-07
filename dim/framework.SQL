@@ -1,10 +1,7 @@
-DROP SCHEMA IF EXISTS nudev CASCADE;
-DROP SCHEMA IF EXISTS framework CASCADE;
+CREATE SCHEMA IF NOT EXISTS staging;
+CREATE SCHEMA IF NOT EXISTS framework;
 
-CREATE SCHEMA nudev;
-CREATE SCHEMA framework;
-
-CREATE TABLE framework.jobs(
+CREATE TABLE IF NOT EXISTS framework.jobs(
   status BOOL,
   jobid TEXT,
   launcher TEXT,
@@ -16,7 +13,7 @@ CREATE TABLE framework.jobs(
   latency_nonbizhrs INT
 );
 
-CREATE TABLE framework.tracker(
+CREATE TABLE IF NOT EXISTS framework.tracker(
   pid BIGINT,
   jobid TEXT,
   starttime TIMESTAMP WITHOUT TIME ZONE,
@@ -24,20 +21,20 @@ CREATE TABLE framework.tracker(
   notes TEXT
 );
 
-CREATE TABLE framework.datatypes(
+CREATE TABLE IF NOT EXISTS framework.datatypes(
   mssql text,
   mysql text,
   pgsql text
 );
 
-CREATE TABLE framework.tabshape(
+CREATE TABLE IF NOT EXISTS framework.tabshape(
   instancecode TEXT,
   collection TEXT,
   datatype TEXT,
   column_str TEXT
 );
 
-CREATE TABLE framework.instanceconfig (
+CREATE TABLE IF NOT EXISTS framework.instanceconfig (
     instanceid INT GENERATED ALWAYS AS IDENTITY,
     isactive BOOL,
     instancetype TEXT,
@@ -50,7 +47,7 @@ CREATE TABLE framework.instanceconfig (
 	instancedesc TEXT
 );
 
-CREATE TABLE framework.collectiontracker(
+CREATE TABLE IF NOT EXISTS framework.collectiontracker(
   changeid INT GENERATED ALWAYS AS IDENTITY,
   status BOOL,
   pid BIGINT,
@@ -63,7 +60,7 @@ CREATE TABLE framework.collectiontracker(
   epoch DOUBLE PRECISION DEFAULT EXTRACT(epoch FROM CURRENT_TIMESTAMP)
 );
 
-CREATE TABLE framework.collectionmaps(
+CREATE TABLE IF NOT EXISTS framework.collectionmaps(
   cid INT GENERATED ALWAYS AS IDENTITY,
   isactive BOOL,
   instancetype TEXT,
@@ -74,7 +71,7 @@ CREATE TABLE framework.collectionmaps(
   pki_fields TEXT
 );
 
-CREATE TABLE framework.errorlogs(
+CREATE TABLE IF NOT EXISTS framework.errorlogs(
   pid BIGINT,
   jobid TEXT,
   error TEXT,
@@ -82,7 +79,7 @@ CREATE TABLE framework.errorlogs(
   db_timestamp TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE framework.chunktraces(
+CREATE TABLE IF NOT EXISTS framework.chunktraces(
   logid INT GENERATED ALWAYS AS IDENTITY,
   status BOOL,
   pid BIGINT,
@@ -94,7 +91,7 @@ CREATE TABLE framework.chunktraces(
   chunkfinish TIMESTAMP WITHOUT TIME ZONE
 );
 
-CREATE TABLE framework.cachetraces(
+CREATE TABLE IF NOT EXISTS framework.cachetraces(
   cacheid BIGINT GENERATED ALWAYS AS IDENTITY,
   pid BIGINT,
   status BOOL,
@@ -106,15 +103,15 @@ CREATE TABLE framework.cachetraces(
   endtime TIMESTAMP WITHOUT TIME ZONE
 );
 
-CREATE TABLE framework.tabshapetraces(
+CREATE TABLE IF NOT EXISTS framework.tabshapetraces(
   epoch DOUBLE PRECISION DEFAULT EXTRACT(epoch FROM CURRENT_TIMESTAMP),
   tabquery TEXT
 );
 
-CREATE TABLE framework.volatiletracker AS
+CREATE TABLE IF NOT EXISTS framework.volatiletracker AS
 SELECT * FROM framework.tracker;
 
-CREATE TABLE framework.volatilecollections AS
+CREATE TABLE IF NOT EXISTS framework.volatilecollections AS
 SELECT fic.instancecode,fic.instancetype,fcm.collection,fcm.stage_table,fcm.stage_fields,fcm.pki_table,fcm.pki_fields ,0::bigint as rover
 FROM framework.instanceconfig fic
 JOIN framework.collectionmaps fcm ON fic.instancetype=fcm.instancetype
@@ -149,7 +146,7 @@ CREATE OR REPLACE FUNCTION framework.createcollection(srctab TEXT, dsttab TEXT,s
 AS
 $$
     DECLARE
-        qry TEXT='CREATE TABLE IF NOT EXISTS ';
+        qry TEXT='CREATE UNLOGGED TABLE IF NOT EXISTS ';
         cols TEXT;
     BEGIN
         SELECT string_agg(result,',') as q INTO cols FROM(
@@ -194,7 +191,7 @@ $$
 	BEGIN
 		IF (ppid<1) THEN
       TRUNCATE TABLE framework.volatiletracker;
-			RETURN QUERY (SELECT DISTINCT launcher,jobid,joborder FROM framework.jobs);
+			RETURN QUERY (SELECT DISTINCT launcher,jobid,joborder FROM framework.jobs WHERE status=true);
 		END IF;
 		CREATE TEMP TABLE bizschedules ON COMMIT DROP AS
 		SELECT DISTINCT jobid,latency_bizhrs AS latency,0::int lastexecution,joborder,launcher
@@ -226,99 +223,3 @@ END
 $$
 LANGUAGE plpgsql VOLATILE
 COST 100;
-
-INSERT INTO framework.instanceconfig(isactive,instancetype,instancecode,hostip,hport,uid,pwd,dbname,instancedesc)
-SELECT false, 'mssql', 'devqa', '10.200.0.42\DEVSQL', 49887, 'lmsreaduser', 'lmsreaduser', 'iLMSDEV_REPL', 'local replica'
-UNION ALL
-SELECT true, 'mssql', 'local', '10.200.0.42\DEVSQL', 49887, 'lmsreaduser', 'lmsreaduser', 'iLMSDEV_REPL', 'local replica'
-UNION ALL
-SELECT false, 'mysql', 'local', '10.200.0.42\DEVSQL', 1433, 'lmsreaduser', 'lmsreaduser', 'iLMSDEV_REPL', 'local replica';
-
-INSERT INTO framework.datatypes
-SELECT 'bigint','','BIGINT'
-UNION ALL
-SELECT 'binary','','TEXT'
-UNION ALL
-SELECT 'bit','','BOOL'
-UNION ALL
-SELECT 'char','','TEXT'
-UNION ALL
-SELECT 'date','','DATE'
-UNION ALL
-SELECT 'datetime','','TIMESTAMP WITHOUT TIME ZONE'
-UNION ALL
-SELECT 'decimal','','FLOAT'
-UNION ALL
-SELECT 'float','','FLOAT'
-UNION ALL
-SELECT 'image','','TEXT'
-UNION ALL
-SELECT 'int','','BIGINT'
-UNION ALL
-SELECT 'nchar','','TEXT'
-UNION ALL
-SELECT 'ntext','','TEXT'
-UNION ALL
-SELECT 'numeric','','FLOAT'
-UNION ALL
-SELECT 'nvarchar','','TEXT'
-UNION ALL
-SELECT 'real','','FLOAT'
-UNION ALL
-SELECT 'smallint','','SMALLINT'
-UNION ALL
-SELECT 'text','','TEXT'
-UNION ALL
-SELECT 'tinyint','','SMALLINT'
-UNION ALL
-SELECT 'uniqueidentifier','','TEXT'
-UNION ALL
-SELECT 'varbinary','','TEXT'
-UNION ALL
-SELECT 'varchar','','TEXT'
-UNION ALL
-SELECT 'xml','','TEXT';
-
-INSERT INTO framework.collectionmaps(isactive,instancetype,collection,stage_table,stage_fields,pki_table,pki_fields)
-SELECT true,'mssql','tbl_user_master','tbl_user_master','*','tbl_user_master_pki','flduserid'
-UNION ALL
-SELECT true,'mssql','tbl_customer_lookup','tbl_customer_lookup','*','tbl_customer_lookup_pki','fldcustid'
-UNION ALL
-SELECT true,'mysql','emailcamps','emailcamps','*','emailcamps_pki',''
-UNION ALL
-SELECT true,'mssql','tbl_course_name','tbl_course_name','*','tbl_course_name_pki','flduserdefinedcourseid'
-UNION ALL
-SELECT true,'mssql','tbl_customer_course','tbl_customer_course','*','tbl_customer_course_pki','intcustid,struserdefinedcourseid'
-UNION ALL
-SELECT true,'mssql','tbl_student_lookup','tbl_student_lookup','*','tbl_student_lookup_pki','flduserid,fldcustid'
-UNION ALL
-SELECT true,'mssql','tbl_rulegroup_user','tbl_rulegroup_user','*','tbl_rulegroup_user_pki','intrulegroupid'
-UNION ALL
-SELECT true,'mssql','tbl_assign_course_student','tbl_assign_course_student','*','tbl_assign_course_student_pki','fldassigncourseid,flduseridassignedto,struserdefinedcourseid'
-UNION ALL
-SELECT true,'mssql','tbl_department_lookup','tbl_department_lookup','*','tbl_department_lookup_pki','flddeptid'
-UNION ALL
-SELECT true,'mssql','tbl_division_lookup','tbl_division_lookup','*','tbl_division_lookup_pki','flddivisionid'
-UNION ALL
-SELECT true,'mssql','tbl_region_lookup','tbl_region_lookup','*','tbl_region_lookup_pki','fldregionid'
-UNION ALL
-SELECT true,'mssql','tbl_rulegroup_master','tbl_rulegroup_master','*','tbl_rulegroup_master_pki','intrulegroupid';
-
-UPDATE framework.collectionmaps SET stage_fields= 'fldUserDefinedCourseId,fldCourseName,fldUsageLimitation,fldSendReminder1,fldSendReminder2,fldReminderDays1,fldReminderDays2,fldCourseDuration,fldSetLicense,fldDeliveryMethod,charCourseType,fldDisplayCourseid,fldOwnerCustId,intLicensePeriod,charCourseStatus,charAllowEnrollCourse,convert(VARCHAR,strPrerequisitesUserDefinedCourseIds) as strprerequisitesuserdefinedcourseids ,strCourseCurriculumCategory,intGroupId,bitSendCertificateOnCourseCompletion,strSignatureFilePath,strLeftSignatureFilePath,strHeaderSignatureFilePath,strFooterSignatureFilePath,charDisplaySurvey,charIsSurveyMandatory,charIsVersioningOff,charIsMultiModuleICCourse,charIsCertificationProgramEnable,decPrice,charLicensePeriodType,bitIsEnableLicensePeriod,intCertificationValidPeriod,charCertificationCriteriaField,charIsSendReminderAndReEnrollInCertification,intFirstCertificationReminder,charReEnrollInCertification,charIsSecondCertificationReminderEnable,intSecondCertificationReminder,charIsThirdCertificationReminderEnable,intThirdCertificationReminder,charIsGracePeriodEnable,intGracePeriodDays,charIsSendGracePeriodStartNotification,charSendMessageToUser,charSendMessageToManager,charSendMessageToOrgAdministrator,CharIsSendMessageToOtherEnable,charSendMessageToOther,strUserDefinedCourseIDToEnrollAfterExpiration,charAllowCourseAccessAfterExpirationAndGracePeriod,bitIsLockEnabled,dtmCourseDurationSpecific,bitPastDueSendEmailUsr,bitPastDueLockCourse,bitPastDueSendEmailMgr,charPastDueChangeStatus,IsScormEngineCourse,charSendExpiredMessage,bitSendCertificateHeaderText,bitSendCertificateFooterText,bitEnablePastDueChangeStatus,charIsSendExpiredMessage,charIsSkipCourseStatusScreen,EmbedCount,DisplayCertificateOnUserTranscript,strCourseDirectoryName,charWindowSize,intWindowWidth,intWindowHeight,bitPreventWindowResize,bitIsMEEnable,bitIsCertificationEnable,bitIsAssignedViaOtherEnrollment,IsIELSCORMCourse,bitIfSAChangeLicense,bitIsHistorical,bitIsEnableVolumeDiscount,bitIsSendLicenseExpirationMail,intDaysBeforeLicenseExpiration,tinyintIEngineVersion,dtmCreatedDate,bitIsNew,chariEngineCourseType,bitIsLogoBranding,bitIsPolicyBranding,charDueDateUserProfileField,strCopiedFromUserDefinedCourseID,charCourseImportType,bitIsMobileEnabled,bitIsMobileReady,bitIsMobileOffline,bitIsCyQ'
-WHERE collection='tbl_course_name' AND instancetype='mssql';
-
-INSERT INTO framework.jobs(jobid,status,jobname,joborder,biz_starttime,biz_endtime,latency_bizhrs,latency_nonbizhrs,launcher)
-SELECT 'popStagingTables.py',true,'Staging Tables',1,'9:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
-UNION ALL
-SELECT 'stagePKIFields.py',false,'Get Primary Key Index',3,'18:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
-UNION ALL
-SELECT 'git/bi-eae/elt_job/build/IEL_BI/job_Load_Staging_to_DV/job_Load_Staging_to_DV_run.sh',false,'Build Vault',4,'18:00:00'::TIME,'21:00:00'::TIME,600,3600,'sh'
-UNION ALL
-SELECT 'git/bi-eae/elt_job/build/IEL_BI/job_Drop_Staging_Tables/job_Drop_Staging_Tables_run.sh',false,'PURGE STAGING',5,'18:00:00'::TIME,'21:00:00'::TIME,600,3600,'sh'
-UNION ALL
-SELECT 'purgeRedundantData.py',false,'Purge duplicate data',2,'9:00:00'::TIME,'21:00:00'::TIME,600,3600,'python';
-
-update framework.collectionmaps set isactive=false;
-update framework.collectionmaps set isactive=true where collection in ('tbl_customer_lookup','tbl_region_lookup');
-
-select * from framework.live_instancecollections();

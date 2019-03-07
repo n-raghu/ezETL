@@ -9,6 +9,7 @@ else:
 	pid=int(sys.argv[1])
 
 from dimlib import *
+from math import ceil
 
 r.init(include_webui=False)
 csize,eaeSchema,uri=dwCNX(tinyset=True)
@@ -69,24 +70,24 @@ def createCollections(sql_table,stage_table,schema_name,uri):
 	pgx.dispose()
 	return None
 
-@r.remote
-def pushChunk(pgTable,tabSchema,pgURI,nuchk,chk):
-	pfi='/dim/irays/nufile'
+@r.remote(max_calls=8)
+def fetch_n_push(pgTable,tabSchema,qry,sql_connexion,pguri,nuchk):
 	pgsql="COPY " +tabSchema+ "." +pgTable+ " FROM STDIN WITH CSV DELIMITER AS '\t' "
-	nuCHK=nuchk.append(chk)
+	sqx=sqlCnx(sql_connexion)
+	pgx=pgconnect(pguri)
+	chk=rsq(qry,sqx)
+	nuchk=nuchk.append(chk,sort=False)
 	csv_dat=StringIO()
-	nuCHK.to_csv(csv_dat,header=False,index=False,sep='\t')
+	nuchk.to_csv(csv_dat,header=False,index=False,sep='\t')
 	csv_dat.seek(0)
-	kon=pgconnect(pgURI)
-	pgcursor=kon.cursor()
+	pgcursor=pgx.cursor()
 	pgcursor.copy_expert(sql=pgsql,file=csv_dat)
-	kon.commit()
+	pgx.commit()
 	pgcursor.close()
 	csv_dat=None
 	del chk
-	del nuCHK
 	del nuchk
-	kon.close()
+	pgx.close()
 	return True
 
 @r.remote
@@ -101,7 +102,6 @@ def popCollections(icode,connexion,iFrame):
 		return trk
 	chunk=pdf([],columns=['model'])
 	for idx,rowdata in iFrame.iterrows():
-		astart=dtm.utcnow()
 		noChange=True
 		rco=rowdata['collection']
 		s_table=rowdata['s_table']
@@ -109,21 +109,26 @@ def popCollections(icode,connexion,iFrame):
 		rower=str(int(rowdata['rower']))
 		sql='SELECT * FROM ' +eaeSchema+ '.' +rco+ ' LIMIT 0'
 		nuChunk=rsq(sql,pgx)
-		sql="SELECT '" +icode+ "' as instancecode," +scols+ ",CONVERT(BIGINT,sys_ROWVERSION) AS ROWER FROM " +rco+ "(NOLOCK) WHERE CONVERT(BIGINT,sys_ROWVERSION) > " +rower
+		sqlCur=sqx.cursor()
+		sql='SELECT COUNT(1) FROM ' +rco+ '(NOLOCK) WHERE CONVERT(BIGINT,sys_ROWVERSION)>' +rower
+		rowcount=sqlCur.execute(sql).fetchone()[0]
+		chunkCount=ceil(rowcount/csize)
 		allFrames=[]
+		astart=dtm.utcnow()
 		try:
-			for chunk in rsq(sql,sqx,chunksize=csize):
+			for citer in range(chunkCount):
 				cstart=dtm.utcnow()
-				allFrames.append(pushChunk.remote(s_table,eaeSchema,uri,nuChunk.copy(deep=True),chunk.copy(deep=True)))
-				trk=trk.append({'status':False,'collection':rco,'rowversion':chunk['rower'].max(),'chunkfinish':dtm.utcnow(),'chunkstart':cstart},ignore_index=True)
+				sql="SELECT '" +icode+ "' as instancecode," +scols+ ",CONVERT(BIGINT,sys_ROWVERSION) AS ROWER FROM " +rco+ "(NOLOCK) WHERE CONVERT(BIGINT,sys_ROWVERSION) > " +str(rower)+ " ORDER BY 1 OFFSET " +str(citer*csize)+ " ROWS FETCH NEXT " +str(csize)+ " ROWS ONLY"
+				allFrames.append(fetch_n_push.remote(s_table,eaeSchema,sql,connexion,uri,nuChunk.copy(deep=True)))
+				trk=trk.append({'status':False,'collection':rco,'rowversion':0,'chunkfinish':dtm.utcnow(),'chunkstart':cstart},ignore_index=True)
 				noChange=False
 			r.wait(allFrames)
-			for frm in allFrames:
-				r.get(frm)
 			trk.loc[(trk['collection']==rco),['status']]=True
 		except (DataError,AssertionError,ValueError,IOError,IndexError) as err:
 			logError(pid,'popStagingTables','For Chunk ' +str(rco)+ ' ' +str(err),uri)
 			trk.loc[(trk['collection']==rco),['status']]=False
+		for item in allFrames:
+			r.get(item)
 		trk.loc[(trk['collection']==rco),['timefinished']]=dtm.utcnow()
 		trk.loc[(trk['collection']==rco),['timestarted']]=astart
 		allFrames.clear()

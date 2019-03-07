@@ -43,7 +43,8 @@ def upsertPID(pid,uri,jobList):
     pidFrame.to_sql('tracker',pgx,if_exists='append',index=False,schema='framework')
     pidFrame['starttime']=dtm.utcnow()
     pidFrame['endtime']=dtm.utcnow()
-    pidFrame['notes']='JOB queued...'
+    pidFrame['notes']='JOB in Queue'
+    pidFrame.to_sql('volatiletracker',pgx,if_exists='append',index=False,schema='framework')
     pgx.dispose()
     return pidFrame
 
@@ -57,7 +58,12 @@ while True:
         continue
     csize,eaeSchema,uri=dwCNX(tinyset=True)
     pgx=pgcnx(uri)
-    jobsNow=list(pgx.execute(''' SELECT * FROM framework.launchpad() ORDER BY 3 '''))
+    session=sessionmaker(bind=pgx)
+    nuSession=session()
+    jobsNow=list(nuSession.execute(''' SELECT * FROM framework.launchpad() ORDER BY 3 '''))
+    nuSession.commit()
+    nuSession.close()
+    print(jobsNow)
     if len(jobsNow)>0:
         pid=int(dtm.timestamp(dtm.utcnow()))
         jList=[j['jid'] for j in jobsNow]
@@ -68,11 +74,12 @@ while True:
             pFile.write(str(dtm.utcnow())+ ' <<< Cycle Started\n')
         for job in jobsNow:
             jStartTime=dtm.utcnow()
+            pidFrame.loc[pidFrame['jobid']==job['jid'],['notes']]='Job Executing...'
             proc=sbp.Popen([job['job_launcher'],job['jid'],str(pid)],stdout=sbp.PIPE,stderr=sbp.PIPE)
             proc.wait()
             pidFrame.loc[pidFrame['jobid']==job['jid'],['endtime']]=dtm.utcnow()
             pidFrame.loc[pidFrame['jobid']==job['jid'],['starttime']]=jStartTime
-            pidFrame.loc[pidFrame['jobid']==job['jid'],['notes']]='Job completed...'
+            pidFrame.loc[pidFrame['jobid']==job['jid'],['notes']]='Job completed'
             pidFrame.to_sql('volatiletracker',pgx,if_exists='append',index=False,schema='framework')
             stdio,stder=proc.communicate()
             with open(pidFile,'a+') as pFile:
