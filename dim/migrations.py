@@ -13,7 +13,7 @@ except ImportError:
     raise ImportError(' Module(s) not installed...')
 
 with open('dimConfig.yml') as ymlFile:
-	cfg=y.load(ymlFile)
+        cfg=y.load(ymlFile)
 
 migrationSQL='CREATE SCHEMA IF NOT EXISTS framework; CREATE TABLE IF NOT EXISTS framework.migrations(module TEXT,sql_type TEXT, sid INT GENERATED ALWAYS AS IDENTITY,migration_time TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP);'
 objects_DDL=str(cfg['migrations'])+'/*.SQL'
@@ -39,7 +39,7 @@ if len(ddlSet)>0:
                 sqlModule=sqlWrapper.read()
                 pgxSession.execute(sqlModule)
                 pgxSession.commit()
-                pgxSession.execute("INSERT INTO framework.migrations(module,sql_type) SELECT '" +iModule+ "','" +ddl+ "'")
+                pgxSession.execute("INSERT INTO framework.migrations(module) SELECT '" +iModule+  "'")
                 pgxSession.commit()
         except (SQLAlchemyError,IOError) as err:
             print('Failed...')
@@ -49,10 +49,8 @@ if len(ddlSet)>0:
 pgxSession.close()
 pgx.dispose()
 
-print('New Modules applied: ' +str(len(dmlSet)+len(ddlSet)))
-if any([len(dmlSet)>0,len(ddlSet)>0]):
+print('New Modules applied: ' +str(len(ddlSet)))
+if len(ddlSet)>0:
     print('------------------------')
-    for i in dmlSet:
-        print('DML '+i)
     for i in ddlSet:
-        print('DDL '+i)
+        print(i)
