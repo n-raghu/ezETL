@@ -16,10 +16,12 @@ with open('dimConfig.yml') as ymlFile:
         cfg=y.load(ymlFile)
 
 migrationSQL='CREATE SCHEMA IF NOT EXISTS framework; CREATE TABLE IF NOT EXISTS framework.migrations(module TEXT,sql_type TEXT, sid INT GENERATED ALWAYS AS IDENTITY,migration_time TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP);'
-objects_DDL=str(cfg['migrations'])+'/*.SQL'
 uri='postgresql://' +cfg['eaedb']['uid']+ ':' +cfg['eaedb']['pwd']+ '@' +cfg['eaedb']['host']+ ':' +str(int(cfg['eaedb']['port']))+ '/' +cfg['eaedb']['db']
 
+objects_DDL=str(cfg['migrations'])+'/*.SQL'
 migrations_DDL=[odict([('filename',os.path.basename(x)),('fpath',x)]) for x in iglob(objects_DDL,recursive=True)]
+objects_DDL=str(cfg['migrations'])+'/*.sql'
+migrations_DDL+=[odict([('filename',os.path.basename(x)),('fpath',x)]) for x in iglob(objects_DDL,recursive=True)]
 
 pgx=pgcnx(uri)
 session=sessionmaker(bind=pgx)
