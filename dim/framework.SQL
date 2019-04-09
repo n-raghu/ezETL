@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS framework.datatypes(
 
 CREATE TABLE IF NOT EXISTS framework.tabshape(
   instancecode TEXT,
+  app TEXT,
   collection TEXT,
   datatype TEXT,
   column_str TEXT
@@ -37,6 +38,7 @@ CREATE TABLE IF NOT EXISTS framework.tabshape(
 CREATE TABLE IF NOT EXISTS framework.instanceconfig (
     instanceid INT GENERATED ALWAYS AS IDENTITY,
     isactive BOOL,
+    app TEXT,
     instancetype TEXT,
     instancecode TEXT,
     hostip TEXT,
@@ -63,6 +65,7 @@ CREATE TABLE IF NOT EXISTS framework.collectiontracker(
 CREATE TABLE IF NOT EXISTS framework.collectionmaps(
   cid INT GENERATED ALWAYS AS IDENTITY,
   isactive BOOL,
+  app TEXT,
   instancetype TEXT,
   collection TEXT,
   stage_table TEXT,
@@ -112,19 +115,19 @@ CREATE TABLE IF NOT EXISTS framework.volatiletracker AS
 SELECT * FROM framework.tracker;
 
 CREATE TABLE IF NOT EXISTS framework.volatilecollections AS
-SELECT fic.instancecode,fic.instancetype,fcm.collection,fcm.stage_table,fcm.stage_fields,fcm.pki_table,fcm.pki_fields ,0::bigint as rover
+SELECT fcm.app,fic.instancecode,fic.instancetype,fcm.collection,fcm.stage_table,fcm.stage_fields,fcm.pki_table,fcm.pki_fields ,0::bigint as rover
 FROM framework.instanceconfig fic
 JOIN framework.collectionmaps fcm ON fic.instancetype=fcm.instancetype
 	WHERE fcm.isactive=true AND fic.isactive=true;
 
 CREATE OR REPLACE FUNCTION framework.live_instancecollections()
-    RETURNS TABLE(icode TEXT,instancetype TEXT,collection TEXT,s_table TEXT,stg_cols TEXT,pkitab TEXT,pki_cols TEXT,rower BIGINT) AS
+    RETURNS TABLE(app TEXT,icode TEXT,instancetype TEXT,collection TEXT,s_table TEXT,stg_cols TEXT,pkitab TEXT,pki_cols TEXT,rower BIGINT) AS
 $$
 BEGIN
 
 TRUNCATE TABLE framework.volatilecollections;
 INSERT INTO framework.volatilecollections
-SELECT fic.instancecode,fic.instancetype,fcm.collection,fcm.stage_table,fcm.stage_fields,fcm.pki_table,fcm.pki_fields ,0::BIGINT AS rover
+SELECT fcm.app,fic.instancecode,fic.instancetype,fcm.collection,fcm.stage_table,fcm.stage_fields,fcm.pki_table,fcm.pki_fields ,0::BIGINT AS rover
   FROM framework.instanceconfig fic
   JOIN framework.collectionmaps fcm ON fic.instancetype=fcm.instancetype
     WHERE fcm.isactive=true AND fic.isactive=true;
@@ -142,7 +145,7 @@ $$
 LANGUAGE plpgsql VOLATILE
 COST 100;
 
-CREATE OR REPLACE FUNCTION framework.createcollection(srctab TEXT, dsttab TEXT,schemaname TEXT) RETURNS TEXT
+CREATE OR REPLACE FUNCTION framework.createcollection(srctab TEXT, dsttab TEXT,schemaname TEXT,app TEXT) RETURNS TEXT
 AS
 $$
     DECLARE
@@ -156,7 +159,11 @@ $$
         JOIN framework.tabshape fts ON fdt.mssql=fts.datatype
         WHERE fts.collection=srctab
         )A)X;
-        qry=CONCAT(qry,schemaname,'.',dsttab,'(instancecode TEXT,',cols,',sys_rowversion TEXT,rower BIGINT)');
+        IF app='potter' THEN
+          qry=CONCAT(qry,schemaname,'.',dsttab,'(',cols,',rower BIGINT)');
+        ELSE
+          qry=CONCAT(qry,schemaname,'.',dsttab,'(instancecode TEXT,',cols,',sys_rowversion TEXT,rower BIGINT)');
+        END IF;
         INSERT INTO framework.tabshapetraces(tabquery) SELECT qry;
         EXECUTE qry;
         RETURN qry;

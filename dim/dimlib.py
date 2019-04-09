@@ -11,6 +11,7 @@ try:
 	from datetime import datetime as dtm
 	from sqlalchemy.orm import sessionmaker
 	from io import StringIO
+	from mysql.connector import connect as mysqlCNX, Error as mysqlErr
 except ImportError:
 	raise ImportError(' Module(s) not installed...')
 
@@ -26,18 +27,35 @@ def dwCNX(tinyset=False):
 		csize=cfg['pandas']['bigset']
 	return csize,eaeSchema,uri
 
-def objects_mssql(urx):
+def dataSession(urx):
+	cnxPGX=pgcnx(urx)
+	SessionClass=sessionmaker(bind=cnxPGX)
+	Session=SessionClass()
+	return Session
+
+def objects_sql(urx,itype):
 	insList_io=[]
 	cnxPGX=pgcnx(urx)
-	insData=cnxPGX.execute("SELECT * FROM framework.instanceconfig WHERE isactive=true AND instancetype='mssql' ")
-	colFrame_io=rsq("SELECT icode,instancetype,collection,s_table,rower,stg_cols,pkitab,pki_cols FROM framework.live_instancecollections() WHERE instancetype='mssql' ",cnxPGX)
+	SessionClass=sessionmaker(bind=cnxPGX)
+	Session=SessionClass()
+	insData=cnxPGX.execute("SELECT * FROM framework.instanceconfig WHERE isactive=true AND instancetype='" +itype+ "' ")
+	colFrame_io=rsq("SELECT icode,instancetype,app,collection,s_table,rower,stg_cols,pkitab,pki_cols FROM framework.live_instancecollections() WHERE instancetype='" +itype+ "' ",cnxPGX)
 	for cnx in insData:
 		dat=odict(cnx)
 		insDict=odict()
 		insDict['icode']=dat['instancecode']
-		insDict['sqlConStr']='DRIVER={'+cfg['drivers']['mssql']+'};SERVER='+dat['hostip']+','+str(int(dat['hport']))+';DATABASE='+dat['dbname']+';UID='+dat['uid']+';PWD='+dat['pwd']+';MARS_Connection=Yes'
+		if itype=='mssql':
+			insDict['sqlConStr']='DRIVER={'+cfg['drivers']['mssql']+'};SERVER='+dat['hostip']+','+str(int(dat['hport']))+';DATABASE='+dat['dbname']+';UID='+dat['uid']+';PWD='+dat['pwd']+';MARS_Connection=Yes'
+		elif itype=='salesforce':
+			insDict['sqlConStr']='salesforce'
+		else:
+			insDict['user']=dat['uid']
+			insDict['password']=dat['pwd']
+			insDict['database']=dat['dbname']
+			insDict['host']=dat['hostip']
+			insDict['port']=dat['hport']
 		insList_io.append(insDict)
-	return odict([('frame',colFrame_io),('insList',insList_io)])
+	return odict([('frame',colFrame_io),('insList',insList_io),('session',Session)])
 
 def logError(pid,jobid,err_message,uri):
 	pgx=pgcnx(uri)

@@ -2,5 +2,6 @@ numpy
 pandas
 psycopg2
 psycopg2-binary
-sqlalchemy
 pypyodbc
+mysql-connector-python
+sqlalchemy
