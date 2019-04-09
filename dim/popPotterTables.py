@@ -10,7 +10,7 @@ else:
 
 from dimlib import *
 
-appVariables={'app':'potter','instancetype':'mysql','module':'popStagingPotterTables'}
+appVariables={'app':'potter','instancetype':'mysql','module':'popPotterTables'}
 csize,eaeSchema,uri=dwCNX(tinyset=True)
 tracker=pdf([],columns=['status','instancecode','collection','timestarted','timefinished','chunkstart','chunkfinish','rowversion'])
 objFrame=[]
@@ -64,7 +64,6 @@ def createCollections(app_appVariables,sql_table,stage_table,schema_name,uri):
 	return None
 
 def pushChunk(instancecode,pgTable,tabSchema,pgURI,nuchk,chk):
-	pfi='/dim/irays/nufile'
 	pgsql="COPY " +tabSchema+ "." +pgTable+ " FROM STDIN WITH CSV DELIMITER AS '\t' "
 	print('')
 	print(chk.columns)

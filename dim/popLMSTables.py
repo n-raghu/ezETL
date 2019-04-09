@@ -11,6 +11,7 @@ else:
 from dimlib import *
 
 r.init(include_webui=False)
+appVariables={'app':'lms','instancetype':'mssql','module':'popLMSTables'}
 csize,eaeSchema,uri=dwCNX(tinyset=True)
 tracker=pdf([],columns=['status','instancecode','collection','timestarted','timefinished','chunkstart','chunkfinish','rowversion'])
 objFrame=[]
@@ -23,7 +24,7 @@ def recordRowVersions():
 	else:
 		pgx=pgcnx(uri)
 		tracker['pid']=pid
-		tracker['instancetype']='mssql'
+		tracker['instancetype']=appVariables['instancetype']
 		tracker.fillna(-1,inplace=True)
 		tracker[['status','instancecode','collection','chunkstart','chunkfinish','rowversion','pid']].to_sql('chunktraces',pgx,if_exists='append',index=False,schema='framework')
 		tracker.drop(['chunkstart','chunkfinish'],axis=1,inplace=True)
@@ -34,22 +35,23 @@ def recordRowVersions():
 		issue=False
 	return issue
 
-mssql_dict=objects_mssql(uri)
-insList=mssql_dict['insList']
-colFrame=mssql_dict['frame']
+sql_dict=objects_sql(uri,appVariables['instancetype'])
+insList=sql_dict['insList']
+colFrame=sql_dict['frame']
 
 def copyCollectionShape(icode,cnxStr,uri):
 	pgx=pgcnx(uri)
 	sqx=sqlCnx(cnxStr)
 	session=sessionmaker(bind=pgx)
 	nuSession=session()
-	nuSession.execute(''' TRUNCATE TABLE framework.tabshape ''')
+	nuSession.execute("DELETE FROM framework.tabshape WHERE app='" +appVariables['app']+ "' ")
 	nuSession.commit()
 	nuSession.close()
 	dbQL="SELECT '" +icode+ "' as instancecode,COLUMN_NAME as column_str,DATA_TYPE as datatype,TABLE_NAME as collection FROM INFORMATION_SCHEMA.COLUMNS ORDER BY TABLE_NAME DESC"
 	dbShape=rsq(dbQL,sqx)
 	dbShape['collection']=dbShape['collection'].str.lower()
 	dbShape['column_str']=dbShape['column_str'].str.lower()
+	dbShape['app']=appVariables['app']
 	dbShape.to_sql('tabshape',pgx,if_exists='append',index=False,schema='framework')
 	sqx.close()
 	pgx.dispose()
@@ -59,19 +61,19 @@ def copyCollectionShape(icode,cnxStr,uri):
 @r.remote
 def createCollections(sql_table,stage_table,schema_name,uri):
 	pgx=pgcnx(uri)
-	ddql=alchemyText(" SELECT framework.createcollection(:f_srcTab,:f_dstTab,:f_schema) ")
-	ddql=" SELECT framework.createcollection('" +sql_table+ "','" +stage_table+ "','" +schema_name+ "')"
+	app_code=appVariables['app']
+	ddql=" SELECT framework.createcollection('" +sql_table+ "','" +stage_table+ "','" +schema_name+ "','" +app_code+ "' )"
+	ddql_dump=ddql
 	session=sessionmaker(bind=pgx)
 	nuSession=session()
 	nuSession.execute(ddql)
 	nuSession.commit()
 	nuSession.close()
 	pgx.dispose()
-	return None
+	return ddql_dump
 
 @r.remote
 def pushChunk(pgTable,tabSchema,pgURI,nuchk,chk):
-	pfi='/dim/irays/nufile'
 	pgsql="COPY " +tabSchema+ "." +pgTable+ " FROM STDIN WITH CSV DELIMITER AS '\t' "
 	nuCHK=nuchk.append(chk)
 	csv_dat=StringIO()
@@ -147,6 +149,10 @@ if all([debug==False,len(insList)>0]):
 		iSQL_Tab,iStage_Tab=iZIP
 		objFrame.append(createCollections.remote(iSQL_Tab,iStage_Tab,eaeSchema,uri))
 	r.wait(objFrame)
+	for obj in objFrame:
+		print('Start')
+		print(r.get(obj))
+		print('Finish')
 	objFrame.clear()
 	print('Staging Tables created... ')
 	for ins in insList:
