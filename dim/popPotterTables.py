@@ -61,15 +61,11 @@ def createCollections(app_appVariables,sql_table,stage_table,schema_name,uri):
 	nuSession.execute(ddql)
 	nuSession.commit()
 	nuSession.close()
-	return None
+	return ddql
 
 def pushChunk(instancecode,pgTable,tabSchema,pgURI,nuchk,chk):
 	pgsql="COPY " +tabSchema+ "." +pgTable+ " FROM STDIN WITH CSV DELIMITER AS '\t' "
-	print('')
-	print(chk.columns)
-	print(nuchk.columns)
-	print('')
-	nuCHK=nuchk.append(chk)
+	nuCHK=nuchk.append(chk,sort=False,ignore_index=True)
 	csv_dat=StringIO()
 	nuCHK.to_csv(csv_dat,header=False,index=False,sep='\t')
 	csv_dat.seek(0)
@@ -133,10 +129,12 @@ if all([debug==False,len(insList)>0]):
 	print('Table Shape copied... ')
 	oneFrame=colFrame.loc[(colFrame['icode']==oneINS['icode']) & (colFrame['app']==appVariables['app']),['collection','s_table']]
 	collectionZIP=list(zip(oneFrame['collection'],oneFrame['s_table']))
+	tmpList=[]
 	for iZIP in collectionZIP:
 		iSQL_Tab,iStage_Tab=iZIP
-		createCollections(appVariables['app'],iSQL_Tab,iStage_Tab,eaeSchema,uri)
+		tmpList.append(createCollections(appVariables['app'],iSQL_Tab,iStage_Tab,eaeSchema,uri))
 	print('Staging Tables created... ')
+	print(tmpList)
 	for ins in insList:
 		instancecode=ins['icode']
 		iFrame=colFrame.loc[(colFrame['icode']==instancecode) & (colFrame['app']==appVariables['app']),['collection','s_table','rower','stg_cols']]
