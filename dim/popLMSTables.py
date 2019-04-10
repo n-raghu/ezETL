@@ -42,8 +42,7 @@ colFrame=sql_dict['frame']
 def copyCollectionShape(icode,cnxStr,uri):
 	pgx=pgcnx(uri)
 	sqx=sqlCnx(cnxStr)
-	session=sessionmaker(bind=pgx)
-	nuSession=session()
+	nuSession=dataSession(uri)
 	nuSession.execute("DELETE FROM framework.tabshape WHERE app='" +appVariables['app']+ "' ")
 	nuSession.commit()
 	nuSession.close()
@@ -52,6 +51,7 @@ def copyCollectionShape(icode,cnxStr,uri):
 	dbShape['collection']=dbShape['collection'].str.lower()
 	dbShape['column_str']=dbShape['column_str'].str.lower()
 	dbShape['app']=appVariables['app']
+	dbShape.replace('timestamp','varchar',True)
 	dbShape.to_sql('tabshape',pgx,if_exists='append',index=False,schema='framework')
 	sqx.close()
 	pgx.dispose()
@@ -63,19 +63,19 @@ def createCollections(sql_table,stage_table,schema_name,uri):
 	pgx=pgcnx(uri)
 	app_code=appVariables['app']
 	ddql=" SELECT framework.createcollection('" +sql_table+ "','" +stage_table+ "','" +schema_name+ "','" +app_code+ "' )"
-	ddql_dump=ddql
-	session=sessionmaker(bind=pgx)
-	nuSession=session()
+	nuSession=dataSession(uri)
 	nuSession.execute(ddql)
 	nuSession.commit()
 	nuSession.close()
 	pgx.dispose()
-	return ddql_dump
+	return None
 
 @r.remote
 def pushChunk(pgTable,tabSchema,pgURI,nuchk,chk):
 	pgsql="COPY " +tabSchema+ "." +pgTable+ " FROM STDIN WITH CSV DELIMITER AS '\t' "
-	nuCHK=nuchk.append(chk)
+	nuCHK=nuchk.append(chk,sort=False,ignore_index=True)
+	print(list(nuCHK.columns))
+	print(list(nuchk.columns))
 	csv_dat=StringIO()
 	nuCHK.to_csv(csv_dat,header=False,index=False,sep='\t')
 	csv_dat.seek(0)
@@ -149,10 +149,6 @@ if all([debug==False,len(insList)>0]):
 		iSQL_Tab,iStage_Tab=iZIP
 		objFrame.append(createCollections.remote(iSQL_Tab,iStage_Tab,eaeSchema,uri))
 	r.wait(objFrame)
-	for obj in objFrame:
-		print('Start')
-		print(r.get(obj))
-		print('Finish')
 	objFrame.clear()
 	print('Staging Tables created... ')
 	for ins in insList:

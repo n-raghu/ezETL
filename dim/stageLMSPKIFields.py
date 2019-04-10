@@ -10,7 +10,7 @@ else:
 
 from dimlib import *
 
-r.init()
+r.init(include_webui=False)
 csize,eaeSchema,uri=dwCNX(tinyset=False)
 print(uri)
 objFrame=[]

@@ -145,7 +145,7 @@ $$
 LANGUAGE plpgsql VOLATILE
 COST 100;
 
-CREATE OR REPLACE FUNCTION framework.createcollection(srctab TEXT, dsttab TEXT,schemaname TEXT,app TEXT) RETURNS TEXT
+CREATE OR REPLACE FUNCTION framework.createcollection(srctab TEXT, dsttab TEXT,schemaname TEXT,app_code TEXT) RETURNS TEXT
 AS
 $$
     DECLARE
@@ -154,15 +154,15 @@ $$
     BEGIN
         SELECT string_agg(result,',') as q INTO cols FROM(
         SELECT array_to_string(ARRAY[col_name ,pg_dt], ' ')  AS result
-        FROM(SELECT fts.column_str as col_name,fdt.pgsql as pg_dt
-        FROM framework.datatypes fdt
-        JOIN framework.tabshape fts ON fdt.mssql=fts.datatype
-        WHERE fts.collection=srctab
+        FROM(SELECT DISTINCT fts.column_str as col_name,fdt.pgsql as pg_dt
+        FROM framework.tabshape fts
+        LEFT JOIN framework.datatypes fdt ON fdt.mssql=fts.datatype
+        WHERE fts.collection=srctab AND fts.app=app_code
         )A)X;
-        IF app='potter' THEN
+        IF app_code='potter' THEN
           qry=CONCAT(qry,schemaname,'.',dsttab,'(',cols,',rower BIGINT)');
         ELSE
-          qry=CONCAT(qry,schemaname,'.',dsttab,'(instancecode TEXT,',cols,',sys_rowversion TEXT,rower BIGINT)');
+          qry=CONCAT(qry,schemaname,'.',dsttab,'(instancecode TEXT,',cols,',rower BIGINT)');
         END IF;
         INSERT INTO framework.tabshapetraces(tabquery) SELECT qry;
         EXECUTE qry;
