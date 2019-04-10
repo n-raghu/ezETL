@@ -99,7 +99,7 @@ def popCollections(icode,connexion,iFrame):
 		sqx=sqlCnx(connexion)
 	except podbc.Error as err:
 		print('Error Connecting to ' +icode+ ' instance. See Error Logs for more details. ')
-		logError(pid,'popStagingTables',err,uri)
+		logError(pid,appVariables['module'],err,uri)
 		return trk
 	chunk=pdf([],columns=['model'])
 	for idx,rowdata in iFrame.iterrows():
@@ -124,7 +124,7 @@ def popCollections(icode,connexion,iFrame):
 				r.get(frm)
 			trk.loc[(trk['collection']==rco),['status']]=True
 		except (DataError,AssertionError,ValueError,IOError,IndexError) as err:
-			logError(pid,'popStagingTables','For Chunk ' +str(rco)+ ' ' +str(err),uri)
+			logError(pid,appVariables['module'],'For Chunk ' +str(rco)+ ' ' +str(err),uri)
 			trk.loc[(trk['collection']==rco),['status']]=False
 		trk.loc[(trk['collection']==rco),['timefinished']]=dtm.utcnow()
 		trk.loc[(trk['collection']==rco),['timestarted']]=astart
