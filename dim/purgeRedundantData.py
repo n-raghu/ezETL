@@ -7,7 +7,8 @@ else:
 from dimlib import *
 csize,eaeSchema,uri=dwCNX()
 
-r.init()
+r.shutdown()
+r.init(include_webui=False)
 @r.remote
 def cleanseStagingTables(tab_name,schema_name,uri):
     pgx=pgcnx(uri)
@@ -28,4 +29,4 @@ objFrame=[]
 for iTab in pgTables:
     objFrame.append(cleanseStagingTables.remote(iTab,eaeSchema,uri))
 
-r.wait(objFrame)
+r.wait(objFrame,timeout=3600)

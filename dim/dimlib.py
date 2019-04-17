@@ -16,7 +16,7 @@ except ImportError:
 	raise ImportError(' Module(s) not installed...')
 
 with open('dimConfig.yml') as ymlFile:
-	cfg=y.load(ymlFile)
+	cfg=y.safe_load(ymlFile)
 
 def dwCNX(tinyset=False):
 	uri='postgresql://' +cfg['eaedb']['uid']+ ':' +cfg['eaedb']['pwd']+ '@' +cfg['eaedb']['host']+ ':' +str(int(cfg['eaedb']['port']))+ '/' +cfg['eaedb']['db']

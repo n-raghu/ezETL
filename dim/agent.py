@@ -14,7 +14,7 @@ intHighLatencyStartTime=23
 
 def getConfig():
     with open('dimConfig.yml') as yFile:
-        cfg=y.load(yFile)
+        cfg=y.safe_load(yFile)
     return cfg['log_directory'],cfg['agent'],cfg['smtp']
 
 def mailStakeHolders(file_name_path,smtp_server,urx):
@@ -60,7 +60,7 @@ while True:
     pgx=pgcnx(uri)
     session=sessionmaker(bind=pgx)
     nuSession=session()
-    jobsNow=list(nuSession.execute(''' SELECT * FROM framework.launchpad() ORDER BY 3 '''))
+    jobsNow=list(nuSession.execute(''' SELECT * FROM framework.launchpad() ORDER BY  '''))
     nuSession.commit()
     nuSession.close()
     print(jobsNow)

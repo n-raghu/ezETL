@@ -10,9 +10,9 @@ else:
 
 from dimlib import *
 
+r.shutdown()
 r.init(include_webui=False)
 csize,eaeSchema,uri=dwCNX(tinyset=False)
-print(uri)
 objFrame=[]
 tracker=pdf([],columns=['instancecode','collection','primekeys','kount','starttime','endtime','status'])
 
