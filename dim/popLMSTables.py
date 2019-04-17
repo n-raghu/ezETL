@@ -10,6 +10,7 @@ else:
 
 from dimlib import *
 
+r.shutdown()
 r.init(include_webui=False)
 appVariables={'app':'lms','instancetype':'mssql','module':'popLMSTables'}
 csize,eaeSchema,uri=dwCNX(tinyset=True)
