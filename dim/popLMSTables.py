@@ -74,8 +74,6 @@ def createCollections(sql_table,stage_table,schema_name,uri):
 def pushChunk(pgTable,tabSchema,pgURI,nuchk,chk):
 	pgsql="COPY " +tabSchema+ "." +pgTable+ " FROM STDIN WITH CSV DELIMITER AS '\t' "
 	nuCHK=nuchk.append(chk,sort=False,ignore_index=True)
-	print(list(nuCHK.columns))
-	print(list(nuchk.columns))
 	csv_dat=StringIO()
 	nuCHK.to_csv(csv_dat,header=False,index=False,sep='\t')
 	csv_dat.seek(0)
@@ -119,9 +117,7 @@ def popCollections(icode,connexion,iFrame):
 				allFrames.append(pushChunk.remote(s_table,eaeSchema,uri,nuChunk.copy(deep=True),chunk.copy(deep=True)))
 				trk=trk.append({'status':False,'collection':rco,'rowversion':chunk['rower'].max(),'chunkfinish':dtm.utcnow(),'chunkstart':cstart},ignore_index=True)
 				noChange=False
-			r.wait(allFrames)
-			for frm in allFrames:
-				r.get(frm)
+			r.wait(allFrames,timeout=360.1)
 			trk.loc[(trk['collection']==rco),['status']]=True
 		except (DataError,AssertionError,ValueError,IOError,IndexError) as err:
 			logError(pid,appVariables['module'],'For Chunk ' +str(rco)+ ' ' +str(err),uri)
