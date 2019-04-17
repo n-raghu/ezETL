@@ -16,7 +16,7 @@ print(uri)
 objFrame=[]
 tracker=pdf([],columns=['instancecode','collection','primekeys','kount','starttime','endtime','status'])
 
-mssql_dict=objects_mssql(uri)
+mssql_dict=objects_sql(uri,'mssql')
 insList=mssql_dict['insList']
 colFrame=mssql_dict['frame']
 
