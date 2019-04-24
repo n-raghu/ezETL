@@ -1,5 +1,5 @@
 import subprocess as sbp
-from dimlib import dwCNX,pdf,y,pgcnx,dtm,sessionmaker
+from dimlib import dwCNX,pdf,rsq,y,pgcnx,dtm,sessionmaker
 import smtplib
 from os.path import basename
 from time import sleep as ziz
@@ -17,11 +17,14 @@ def getConfig():
         cfg=y.safe_load(yFile)
     return cfg['log_directory'],cfg['agent'],cfg['smtp']
 
-def mailStakeHolders(file_name_path,smtp_server,urx):
+def mailStakeHolders(file_name_path,smtp_server,from_addr,urx):
     pgx=pgcnx(urx)
     msg=MIMEMultipart()
-    msg['From']='EAE Data Integration <eae@inspireme.com>'
-    msg['To']='raghu.neerukonda@inspiredelearning.com'
+    sql="SELECT tolist FROM framework.stakeholders WHERE active='true' "
+    tolistFrame=rsq(sql,pgx)
+    tolist=['vishnu.karmakar@inspiredelearning.com','raghu.neerukonda@inspiredelearning.com']
+    msg['From']=from_addr
+    msg['To']=tolist
     msg['Date']=formatdate(localtime=True)
     msg['Subject']='Summary of Data Integration to EAE Database.'
     msg.attach(MIMEText('Check Attachment.... Thank you'))

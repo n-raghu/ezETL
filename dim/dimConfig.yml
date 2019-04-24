@@ -26,5 +26,5 @@ agent:
 
 smtp:
   server: 172.16.3.129
-  from: EAE Data Integration <eae@inspireme.com>
+  from: EAE Data Integration <statzen@eae.inspireme.com>
   enable: true

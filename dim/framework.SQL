@@ -111,6 +111,14 @@ CREATE TABLE IF NOT EXISTS framework.tabshapetraces(
   tabquery TEXT
 );
 
+CREATE TABLE IF NOT EXISTS framework.stakeholders(
+  recepient TEXT,
+  recepient_info TEXT,
+  active BOOL,
+  tolist BOOL,
+  cclist BOOL
+);
+
 CREATE TABLE IF NOT EXISTS framework.volatiletracker AS
 SELECT * FROM framework.tracker;
 
