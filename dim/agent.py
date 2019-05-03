@@ -63,7 +63,7 @@ while True:
     pgx=pgcnx(uri)
     session=sessionmaker(bind=pgx)
     nuSession=session()
-    jobsNow=list(nuSession.execute(''' SELECT * FROM framework.launchpad() ORDER BY  '''))
+    jobsNow=list(nuSession.execute(''' SELECT * FROM framework.launchpad() ORDER BY job_order '''))
     nuSession.commit()
     nuSession.close()
     print(jobsNow)

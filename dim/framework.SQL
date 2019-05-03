@@ -217,7 +217,7 @@ $$
 		FROM framework.jobs fwj
 			WHERE bzs.jobid=fwj.jobid AND bzs.job_mode='non_biz';
 		UPDATE bizschedules SET lastexecution=(
-			SELECT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP -MIN(starttime)) FROM framework.tracker WHERE PID=ppid);
+			SELECT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP -MIN(starttime)) FROM framework.tracker WHERE pid=ppid);
     IF (SELECT COUNT(*)>0 FROM bizschedules WHERE lastexecution>latency) THEN
       TRUNCATE TABLE framework.volatiletracker;
     END IF;
