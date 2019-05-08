@@ -46,13 +46,14 @@ if len(accTable)>0 or len(oppTable)>0:
     accFrame['opportunityid']=accFrame['OpportunityId']
     del accFrame['OpportunityId']
     fOf=pMerge(prdFrame,accFrame,on='opportunityid',how='inner')
-    dateCols=['AccountExpiryData','CloseDate','LicenseEndDate','LicenseStartDate']
+    dateCols=['AccountExpiryDate','CloseDate','LicenseEndDate','LicenseStartDate']
     for col in dateCols:
         fOf[col]=to_datetime(fOf[col],format='%Y-%m-%d')
-    accFrame=fOf['AccountExpiryData','AccountName','AccountId','TypeOfPartner']
+    accFrame=fOf[['AccountExpiryDate','AccountName','AccountId','TypeOfPartner']].copy(deep=True)
+    accFrame.drop_duplicates(subset='AccountId',keep='first',inplace=True)
     fOf['pid']=int(dtm.timestamp(dtm.utcnow()))
     fOf['app']='salesforce'
     fOf.to_sql('api_datalogs',pgx,index=False,if_exists='append',schema='framework')
-    fOf.drop(['AccountExpiryData','AccountName','TypeOfPartner','app','pid'],axis=1,inplace=True)
+    fOf.drop(['AccountExpiryDate','AccountName','TypeOfPartner','app','pid'],axis=1,inplace=True)
     accFrame.to_sql('salesforce_accounts',pgx,index=False,if_exists='append',schema=cfg['eaedb']['schema'])
     fOf.to_sql('salesforce_opportunities',pgx,index=False,if_exists='append',schema=cfg['eaedb']['schema'])

@@ -1,0 +1,22 @@
+
+DROP TABLE framework.api_mappers;
+CREATE TABLE IF NOT EXISTS framework.api_mappers(
+active BOOL,
+app TEXT,
+point_name TEXT,
+endpoint TEXT,
+point_col TEXT,
+dtype_collection TEXT,
+collection TEXT
+);
+
+INSERT INTO framework.api_mappers(active,app,point_name,endpoint,point_col,dtype_collection,collection)
+SELECT true,'salesforce','OpportunityTracker','https://cs70.salesforce.com/services/apexrest/getClosedWonOpportunities','AccountId','text','salesforce_accounts'
+UNION ALL
+SELECT true,'salesforce','OpportunityTracker','https://cs70.salesforce.com/services/apexrest/getClosedWonOpportunities','accountname','text','salesforce_accounts'
+UNION ALL
+SELECT true,'salesforce','OpportunityTracker','https://cs70.salesforce.com/services/apexrest/getClosedWonOpportunities','AccountExpiryDate','date','salesforce_accounts'
+UNION ALL
+SELECT true,'salesforce','NuTracker','https://cs70.salesforce.com/services/apexrest/getClosedWonOpportunities','AccountId','text','sfdc_accounts'
+UNION ALL
+SELECT true,'salesforce','NuTracker','https://cs70.salesforce.com/services/apexrest/getClosedWonOpportunities','AccountExpiryDate','date','sfdc_accounts'
