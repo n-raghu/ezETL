@@ -17,6 +17,10 @@ SELECT true,'salesforce','OpportunityTracker','https://cs70.salesforce.com/servi
 UNION ALL
 SELECT true,'salesforce','OpportunityTracker','https://cs70.salesforce.com/services/apexrest/getClosedWonOpportunities','AccountExpiryDate','date','salesforce_accounts'
 UNION ALL
-SELECT true,'salesforce','NuTracker','https://cs70.salesforce.com/services/apexrest/getClosedWonOpportunities','AccountId','text','sfdc_accounts'
+SELECT true,'salesforce','OpportunityTracker','https://cs70.salesforce.com/services/apexrest/getClosedWonOpportunities','accountcreatedDate','date','salesforce_accounts'
 UNION ALL
-SELECT true,'salesforce','NuTracker','https://cs70.salesforce.com/services/apexrest/getClosedWonOpportunities','AccountExpiryDate','date','sfdc_accounts'
+SELECT true,'salesforce','OpportunityTracker','https://cs70.salesforce.com/services/apexrest/getClosedWonOpportunities','typeOfPartner','text','salesforce_accounts'
+UNION ALL
+SELECT true,'salesforce','OpportunityTracker','https://cs70.salesforce.com/services/apexrest/getClosedWonOpportunities','Opportunityid','text','salesforce_opportunities'
+UNION ALL
+SELECT true,'salesforce','OpportunityTracker','https://cs70.salesforce.com/services/apexrest/getClosedWonOpportunities','lineitems.productname','text','salesforce_opportunities'
