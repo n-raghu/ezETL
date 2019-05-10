@@ -62,8 +62,8 @@ for tab in tabList:
   collectionColumns=unpackCols+apiKeys
   tmpFrame=api[idi][collectionColumns].copy(deep=True)
   rows=[]
-  _=tmpFrame.apply(lambda row: [rows.append([row[','.join(apiKeys)], nn]) for nn in row[unpackCols[0]]],axis=1)
-  _frm_=pdf(rows,columns=tmpFrame.columns).set_index([','.join(apiKeys)])
+  _=tmpFrame.apply(lambda row: [rows.append({','.join(apiKeys):row[','.join(apiKeys)], unpackCols[0]:nn}) for nn in row[unpackCols[0]]],axis=1)
+  _frm_=pdf(rows)
   dataCollectionList.append(pConcat([_frm_,_frm_[unpackCols[0]].apply(pSeries)],axis=1).drop(unpackCols[0],axis=1)
   rows.clear()
 
