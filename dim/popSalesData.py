@@ -58,21 +58,29 @@ for tab in tabList:
     _nu[_k]=key
   unpackCols=list(_nu.keys())
   tabColumns=[_ for _ in col if '.' not in _]
-  apiKeys=list(set(list(mapper['api_keycol'])))
+  apiKey=list(mapper['api_keycol'])[0]
   fetchColFromAPI=unpackCols+apiKeys+tabColumns
   fetchColFromAPI=list(set(fetchColFromAPI))
-  tmpFrame=api[idi][fetchColFromAPI].copy(deep=True)
-  rows=[]
-  _=tmpFrame.apply(lambda row: [rows.append({','.join(apiKeys):row[','.join(apiKeys)], unpackCols[0]:nn}) for nn in row[unpackCols[0]]],axis=1)
-  _frm_=pdf(rows)
-  _frm_=pConcat([_frm_,_frm_[unpackCols[0]].apply(pSeries)],axis=1).drop(unpackCols[0],axis=1)
-  _frm_.columns=map(str.lower,_frm_.columns)
-  dataCollectionList.append(_frm_[tabColumns])
+  fullFrame=api[idi][fetchColFromAPI].copy(deep=True)
+  dataTabFrame=pdf([])
+  for _col_ in unpackCols:
+   rows=[]
+   _=fullFrame.apply(lambda row: [rows.append({apiKey:row[apiKey],_col_:nn}) for nn in row[_col_]],axis=1)
+   _frm_=pdf(rows)
+   _frm_=pConcat([_frm_,_frm_[_col_].apply(pSeries)],axis=1).drop(_col_,axis=1)
+   _frm_.columns=map(str.lower,_frm_.columns)
+   if len(dataTabFrame)>0:
+    dataTabFrame=pMerge(dataTabFrame,_frm_,on='opportunityid',how='inner')
+   else:
+    dataTabFrame=_frm_.copy(deep=True)
+  if len(dataTabFrame)>0:
+   dataTabFrame=pMerge(dataTabFrame,fullFrame,on='opportunityid',how='inner')
+  else:
+   dataTabFrame=fullFrame
+  tabColumns+=list(_nu.values())
+  dataCollectionList.append(dataTabFrame[tabColumns])
  else:
-
-
-  rows.clear()
-
+  dataCollectionList.append(api[idi][col])
 
 # Push Table Frames to datastore
 
