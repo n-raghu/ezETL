@@ -2,7 +2,7 @@ import requests as req
 import json
 from dimlib import pgcnx as dbeng,dtm,pdf,cfg,logError,dataSession,rsq
 from pandas import concat as pConcat,Series as pSeries,merge as pMerge,to_datetime as pDT
-from collections import OrderedDict as odict
+from collections import OrderedDict as odict,Iterable as cIterable
 
 uri='postgresql://' +cfg['eaedb']['uid']+ ':' +cfg['eaedb']['pwd']+ '@' +cfg['eaedb']['host']+ ':' +str(int(cfg['eaedb']['port']))+ '/' +cfg['eaedb']['db']
 TokenPoint=cfg['salesforce']['token']
@@ -19,6 +19,13 @@ dataHeadR={'accept':cfg['salesforce']['data_ctype'],'content-type':cfg['salesfor
 
 pgx=dbeng(uri)
 api=odict()
+
+def listFlatter(l):
+    for el in l:
+        if isinstance(el, cIterable) and not isinstance(el, (str, bytes)):
+            yield from listFlatter(el)
+        else:
+            yield el
 
 mapper=rsq('SELECT * FROM framework.api_mappers WHERE active=true',pgx)
 tfo=mapper[['point_name','endpoint']].copy(deep=True)
@@ -78,6 +85,7 @@ for tab in tabList:
   else:
    dataTabFrame=fullFrame
   tabColumns+=list(_nu.values())
+  tabColumns=list(listFlatter(tabColumns))
   dataCollectionList.append(dataTabFrame[tabColumns])
  else:
   dataCollectionList.append(api[idi][col])
