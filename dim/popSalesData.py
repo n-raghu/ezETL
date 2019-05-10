@@ -59,7 +59,7 @@ for tab in tabList:
   unpackCols=list(_nu.keys())
   tabColumns=[_ for _ in col if '.' not in _]
   apiKey=list(mapper['api_keycol'])[0]
-  fetchColFromAPI=unpackCols+apiKeys+tabColumns
+  fetchColFromAPI=unpackCols+[apiKey]+tabColumns
   fetchColFromAPI=list(set(fetchColFromAPI))
   fullFrame=api[idi][fetchColFromAPI].copy(deep=True)
   dataTabFrame=pdf([])
