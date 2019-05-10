@@ -46,3 +46,10 @@ for tab in tabList:
  idi,col=tab
  col=col.split(',')
  collectionList.append(api[idi][col])
+ parseCol=[{k.split('.')[0]:k.split('.')[1]} for k in col if "." in k]
+ if len(parseCol)>0:
+  
+
+rows=[]
+_=tmpFrame.apply(lambda row: [rows.append([row['opportunityid'], nn]) for nn in row['lineitems']],axis=1)
+df_new=pdf(rows,columns=tmpFrame.columns).set_index(['opportunityid'])
