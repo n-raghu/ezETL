@@ -16,7 +16,7 @@ dataParams={'start_date':'05/01/2019','end_date':'05/02/2019'}
 tokenHeadR={'content-type':'application/x-www-form-urlencoded'}
 r=req.post(TokenPoint,params=tokenParams,headers=tokenHeadR)
 _record=[{'app':app,'endpoint':r.url,'headers':json.dumps(tokenHeadR),'params':json.dumps(tokenParams),'responsecode':str(r),'responseok':r.ok,'requesttime':dtm.utcnow()}]
-pdf(_record).to_sql('api_traces',index=False,if_exists='append',schema='framework')
+pdf(_record).to_sql('api_traces',pgx,index=False,if_exists='append',schema='framework')
 dataHeadR={'accept':cfg['salesforce']['data_ctype'],'content-type':cfg['salesforce']['data_ctype']
         ,'Authorization':'Bearer {}'.format(json.loads(r.text)['access_token'])}
 
@@ -39,7 +39,7 @@ for pnt in points:
  R=req.post(hit,data=json.dumps(dataParams),headers=dataHeadR)
  api[idi]=pdf(json.loads(R.text))
  _record=[{'app':app,'endpoint':idi,'headers':json.dumps(dataHeadR),'params':json.dumps(dataParams),'responsecode':str(R),'responseok':R.ok,'requesttime':dtm.utcnow()}]
- pdf(_record).to_sql('api_traces',index=False,if_exists='append',schema='framework')
+ pdf(_record).to_sql('api_traces',pgx,index=False,if_exists='append',schema='framework')
  api[idi].columns=map(str.lower,api[idi].columns)
 
 # Create list of tables to be created
@@ -83,9 +83,9 @@ for tab in tabList:
    dataTabFrame=fullFrame
   tabColumns+=list(_nu.values())
   tabColumns=list(listFlatter(tabColumns))
-  dataTabFrame.drop_duplicates()
-  dataTabFrame[tabColumns].to_sql(tabName,index=False,if_exists='replace',schema='framework')
+  dataTabFrame[tabColumns].drop_duplicates().to_sql(tabName,pgx,index=False,if_exists='replace',schema='framework')
  else:
-  api[idi][columnList].to_sql(tabName,index=False,if_exists='replace',schema='framework')
+  api[idi][columnList].drop_duplicates().to_sql(tabName,pgx,index=False,if_exists='replace',schema='framework')
 
 del api
+pgx.dispose()
