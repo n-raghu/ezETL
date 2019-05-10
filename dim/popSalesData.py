@@ -18,38 +18,58 @@ dataHeadR={'accept':cfg['salesforce']['data_ctype'],'content-type':cfg['salesfor
         ,'Authorization':'Bearer {}'.format(json.loads(r.text)['access_token'])}
 
 pgx=dbeng(uri)
-
 api=odict()
+
 mapper=rsq('SELECT * FROM framework.api_mappers WHERE active=true',pgx)
 tfo=mapper[['point_name','endpoint']].copy(deep=True)
 tfo.drop_duplicates('point_name',keep='first',inplace=True)
 points=list(zip(tfo['point_name'],tfo['endpoint']))
-
 mapper['point_col']=mapper['point_col'].str.lower()
 
+# Fetch data from active API
 for pnt in points:
  idi,hit=pnt
  R=req.post(hit,data=json.dumps(dataParams),headers=dataHeadR)
  api[idi]=pdf(json.loads(R.text))
  api[idi].columns=map(str.lower,api[idi].columns)
 
-collections=mapper['collection']
-collections=list(set(collections))
+# List all collections
+collectionList=mapper['collection']
+collectionList=list(set(collectionList))
 
+# Create list of tables to be created
 tabFrame=mapper[['point_name','point_col']].copy(deep=True)
 tabFrame['point_col']=tabFrame.groupby('point_name')['point_col','point_name'].transform(lambda x:','.join(x))
 tabFrame.drop_duplicates(inplace=True)
 tabList=list(zip(tabFrame['point_name'],tabFrame['point_col']))
 
-collectionList=[]
+# Create Table Frames
+dataCollectionList=[]
 for tab in tabList:
  idi,col=tab
  col=col.split(',')
  collectionList.append(api[idi][col])
  parseCol=[{k.split('.')[0]:k.split('.')[1]} for k in col if "." in k]
  if len(parseCol)>0:
-  
+  _nu={}
+  for _itr in parseCol:
+   for _k,_v in _itr.items():
+    key=_nu.get(_k,[])
+    key.append(_v)
+    _nu[_k]=key
+  unpackCols=list(_nu.keys())
+  apiKeys=list(set(list(mapper['api_keycol'])))
+  collectionColumns=unpackCols+apiKeys
+  tmpFrame=api[idi][collectionColumns].copy(deep=True)
+  rows=[]
+  _=tmpFrame.apply(lambda row: [rows.append([row[','.join(apiKeys)], nn]) for nn in row[unpackCols[0]]],axis=1)
+  _frm_=pdf(rows,columns=tmpFrame.columns).set_index([','.join(apiKeys)])
+  dataCollectionList.append(pConcat([_frm_,_frm_[unpackCols[0]].apply(pSeries)],axis=1).drop(unpackCols[0],axis=1)
+  rows.clear()
 
-rows=[]
-_=tmpFrame.apply(lambda row: [rows.append([row['opportunityid'], nn]) for nn in row['lineitems']],axis=1)
-df_new=pdf(rows,columns=tmpFrame.columns).set_index(['opportunityid'])
+# Push Table Frames to datastore
+
+# Purge data objects
+del collectionList
+del mapper
+del api
