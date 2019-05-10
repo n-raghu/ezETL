@@ -48,7 +48,6 @@ dataCollectionList=[]
 for tab in tabList:
  idi,col=tab
  col=col.split(',')
- collectionList.append(api[idi][col])
  parseCol=[{k.split('.')[0]:k.split('.')[1]} for k in col if "." in k]
  if len(parseCol)>0:
   _nu={}
@@ -58,14 +57,22 @@ for tab in tabList:
     key.append(_v)
     _nu[_k]=key
   unpackCols=list(_nu.keys())
+  tabColumns=[_ for _ in col if '.' not in _]
   apiKeys=list(set(list(mapper['api_keycol'])))
-  collectionColumns=unpackCols+apiKeys
-  tmpFrame=api[idi][collectionColumns].copy(deep=True)
+  fetchColFromAPI=unpackCols+apiKeys+tabColumns
+  fetchColFromAPI=list(set(fetchColFromAPI))
+  tmpFrame=api[idi][fetchColFromAPI].copy(deep=True)
   rows=[]
   _=tmpFrame.apply(lambda row: [rows.append({','.join(apiKeys):row[','.join(apiKeys)], unpackCols[0]:nn}) for nn in row[unpackCols[0]]],axis=1)
   _frm_=pdf(rows)
-  dataCollectionList.append(pConcat([_frm_,_frm_[unpackCols[0]].apply(pSeries)],axis=1).drop(unpackCols[0],axis=1)
+  _frm_=pConcat([_frm_,_frm_[unpackCols[0]].apply(pSeries)],axis=1).drop(unpackCols[0],axis=1)
+  _frm_.columns=map(str.lower,_frm_.columns)
+  dataCollectionList.append(_frm_[tabColumns])
+ else:
+
+
   rows.clear()
+
 
 # Push Table Frames to datastore
 
