@@ -119,6 +119,16 @@ CREATE TABLE IF NOT EXISTS framework.stakeholders(
   cclist BOOL
 );
 
+CREATE TABLE IF NOT EXISTS framework.api_traces(
+  app TEXT,
+  endpoint TEXT,
+  headers TEXT,
+  params TEXT,
+  requesttime TEXT,
+  responsecode TEXT,
+  responseok BOOL
+);
+
 CREATE TABLE IF NOT EXISTS framework.volatiletracker AS
 SELECT * FROM framework.tracker;
 

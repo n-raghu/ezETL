@@ -5,14 +5,25 @@ from pandas import concat as pConcat,Series as pSeries,merge as pMerge
 from collections import OrderedDict as odict,Iterable as cIterable
 
 app='salesforce'
-pgx=dbeng(uri)
 api=odict()
 uri='postgresql://' +cfg['eaedb']['uid']+ ':' +cfg['eaedb']['pwd']+ '@' +cfg['eaedb']['host']+ ':' +str(int(cfg['eaedb']['port']))+ '/' +cfg['eaedb']['db']
+pgx=dbeng(uri)
 TokenPoint=cfg['salesforce']['token']
 DataPoint=cfg['salesforce']['data']
 tokenParams={'grant_type':'password','client_id':cfg['salesforce']['cid'],'client_secret':cfg['salesforce']['secrect']
     ,'username':cfg['salesforce']['uid'],'password':cfg['salesforce']['pwd']}
-dataParams={'start_date':'05/01/2019','end_date':'05/02/2019'}
+_fmt=cfg['salesforce']['dateformat']
+_x=rsq(''' SELECT requesttime FROM framework.api_traces WHERE app='salesforce' ''',pgx)
+_sdate=_x['requesttime'].max()
+if isinstance(_sdate,dtm):
+    _sdate=_sdate.strftime(_fmt)
+else:
+    _sdate=cfg['salesforce']['start_date']
+_fmt='%' +'/%'.join(_fmt.split('/'))
+dataParams={'start_date':_sdate,'end_date':dtm.utcnow().strftime(_fmt)}
+print(dataParams)
+dataParams={'start_date':'01/01/2016','end_date':'05/16/2019'}
+print(dataParams)
 tokenHeadR={'content-type':'application/x-www-form-urlencoded'}
 r=req.post(TokenPoint,params=tokenParams,headers=tokenHeadR)
 _record=[{'app':app,'endpoint':r.url,'headers':json.dumps(tokenHeadR),'params':json.dumps(tokenParams),'responsecode':str(r),'responseok':r.ok,'requesttime':dtm.utcnow()}]

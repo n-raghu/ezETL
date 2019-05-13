@@ -37,4 +37,5 @@ salesforce:
   pwd: Passion@3owcF8Vw8VpqodZY7v9boU3Ph
   secrect: 1F35E6ED29FB35F484B562F02236479E92F16B71BE5A5B1CED787AD42EBB7D2D
   uid: divs@kcloudtechnologies.com.elearning
-  dateformat: %m%d%Y
+  dateformat: m/d/Y
+  start_date: 1/1/2016

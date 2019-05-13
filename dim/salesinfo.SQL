@@ -29,3 +29,5 @@ UNION ALL
 SELECT true,'salesforce','OpportunityTracker','https://cs70.salesforce.com/services/apexrest/getClosedWonOpportunities','lineitems.productcode','text','salesforce_opportunities','opportunityid'
 UNION ALL
 SELECT true,'salesforce','OpportunityTracker','https://cs70.salesforce.com/services/apexrest/getClosedWonOpportunities','lineitems.productid','text','salesforce_opportunities','opportunityid'
+UNION ALL
+SELECT true,'salesforce','OpportunityTracker','https://cs70.salesforce.com/services/apexrest/getClosedWonOpportunities','Industry','text','salesforce_opportunities','opportunityid'
