@@ -98,3 +98,7 @@ UNION ALL
 SELECT '../IEL_BI/job_Drop_Staging_Tables/job_Drop_Staging_Tables_run.sh',false,'PURGE STAGING',5,'18:00:00'::TIME,'21:00:00'::TIME,600,3600,'sh'
 UNION ALL
 SELECT 'purgeRedundantData.py',true,'Purge duplicate data',2,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python';
+
+INSERT INTO framework.statements(isactive,statement)
+SELECT true,'REFRESH MATERIALIZED VIEW bi_pl.d_student_summary;'
+SELECT true,'REFRESH MATERIALIZED VIEW bi_pl.f_customer_enrollment;'

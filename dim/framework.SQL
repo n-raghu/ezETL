@@ -129,6 +129,13 @@ CREATE TABLE IF NOT EXISTS framework.api_traces(
   responseok BOOL
 );
 
+CREATE TABLE IF NOT EXISTS framework.statements(
+  isactive BOOL,
+  statement_id INT GENERATED ALWAYS AS IDENTITY,
+  statement TEXT,
+  created DATE DEFAULT CURRENT_DATE
+);
+
 CREATE TABLE IF NOT EXISTS framework.volatiletracker AS
 SELECT * FROM framework.tracker;
 
