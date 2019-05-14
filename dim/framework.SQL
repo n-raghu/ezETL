@@ -1,4 +1,3 @@
-CREATE SCHEMA IF NOT EXISTS staging;
 CREATE SCHEMA IF NOT EXISTS framework;
 
 CREATE TABLE IF NOT EXISTS framework.jobs(
@@ -177,13 +176,23 @@ $$
         qry TEXT='CREATE UNLOGGED TABLE IF NOT EXISTS ';
         cols TEXT;
     BEGIN
-        SELECT string_agg(result,',') as q INTO cols FROM(
-        SELECT array_to_string(ARRAY[col_name ,pg_dt], ' ')  AS result
-        FROM(SELECT DISTINCT fts.column_str as col_name,fdt.pgsql as pg_dt
-        FROM framework.tabshape fts
-        LEFT JOIN framework.datatypes fdt ON fdt.mssql=fts.datatype
-        WHERE fts.collection=srctab AND fts.app=app_code
-        )A)X;
+        IF app_code='lms' THEN
+          SELECT string_agg(result,',') as q INTO cols FROM(
+          SELECT array_to_string(ARRAY[col_name ,pg_dt], ' ')  AS result
+          FROM(SELECT DISTINCT fts.column_str as col_name,fdt.pgsql as pg_dt
+          FROM framework.tabshape fts
+          LEFT JOIN framework.datatypes fdt ON fdt.mssql=fts.datatype
+          WHERE fts.collection=srctab AND fts.app=app_code
+          )A)X;
+        ELSE
+          SELECT string_agg(result,',') as q INTO cols FROM(
+          SELECT array_to_string(ARRAY[col_name ,pg_dt], ' ')  AS result
+          FROM(SELECT DISTINCT fts.column_str as col_name,fdt.pgsql as pg_dt
+          FROM framework.tabshape fts
+          LEFT JOIN framework.datatypes fdt ON fdt.mysql=fts.datatype
+          WHERE fts.collection=srctab AND fts.app=app_code
+          )A)X;
+        END IF;
         IF app_code='potter' THEN
           qry=CONCAT(qry,schemaname,'.',dsttab,'(',cols,',rower BIGINT)');
         ELSE

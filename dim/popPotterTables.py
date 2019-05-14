@@ -44,7 +44,7 @@ def copyCollectionShape(one_ins,uri):
 	nuSession.execute("DELETE FROM framework.tabshape WHERE app='" +appVariables['app']+ "' ")
 	nuSession.commit()
 	nuSession.close()
-	dbQL="SELECT COLUMN_NAME as column_str,DATA_TYPE as datatype,TABLE_NAME as collection FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema='potter' "
+	dbQL="SELECT COLUMN_NAME as column_str,DATA_TYPE as datatype,TABLE_NAME as collection FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema='" +one_ins['database']+ "'"
 	dbShape=rsq(dbQL,sqx)
 	dbShape['collection']=dbShape['collection'].str.lower()
 	dbShape['column_str']=dbShape['column_str'].str.lower()
@@ -78,7 +78,20 @@ def pushChunk(instancecode,pgTable,tabSchema,pgURI,nuchk,chk):
 	del chk
 	del nuCHK
 	del nuchk
+	alterQL="SELECT COLUMN_NAME AS col_name FROM information_schema.columns WHERE table_name='" +pgTable+ "' AND table_schema='" +tabSchema+ "' AND data_type='numeric' "
+	alterFrame=rsq(alterQL,kon)
 	kon.close()
+	col_list=list(alterFrame['col_name'])
+	if len(col_list)>0:
+		alterSQL='ALTER TABLE ' +tabSchema +'.'+ pgTable
+		for _col_ in col_list:
+			alterSQL+=' ALTER COLUMN ' +_col_+ ' TYPE BOOL USING CASE WHEN ' +_col_+ '=0 THEN false WHEN ' +_col_+ '>0 THEN true ELSE null END,'
+		if alterSQL.endswith(','):
+			alterSQL=alterSQL[:-1]
+		nuSession=dataSession(pgURI)
+		nuSession.execute(alterSQL)
+		nuSession.commit()
+		nuSession.close()
 	return True
 
 def popCollections(icode,one_ins,iFrame):
@@ -134,7 +147,6 @@ if all([debug==False,len(insList)>0]):
 		iSQL_Tab,iStage_Tab=iZIP
 		tmpList.append(createCollections(appVariables['app'],iSQL_Tab,iStage_Tab,eaeSchema,uri))
 	print('Staging Tables created... ')
-	print(tmpList)
 	for ins in insList:
 		instancecode=ins['icode']
 		iFrame=colFrame.loc[(colFrame['icode']==instancecode) & (colFrame['app']==appVariables['app']),['collection','s_table','rower','stg_cols']]

@@ -12,7 +12,9 @@ SELECT 'bigint','DOUBLE PRECISION','DOUBLE PRECISION'
 UNION ALL
 SELECT 'binary','TEXT','TEXT'
 UNION ALL
-SELECT 'bit','bit','BOOL'
+SELECT 'bit',' ','BOOL'
+UNION ALL
+SELECT '','bit','NUMERIC'
 UNION ALL
 SELECT 'char','character varying','TEXT'
 UNION ALL
