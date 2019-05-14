@@ -7,6 +7,7 @@ from collections import OrderedDict as odict,Iterable as cIterable
 app='salesforce'
 api=odict()
 uri='postgresql://' +cfg['eaedb']['uid']+ ':' +cfg['eaedb']['pwd']+ '@' +cfg['eaedb']['host']+ ':' +str(int(cfg['eaedb']['port']))+ '/' +cfg['eaedb']['db']
+eaeSchema=cfg['eaedb']['schema']
 pgx=dbeng(uri)
 TokenPoint=cfg['salesforce']['token']
 DataPoint=cfg['salesforce']['data']
@@ -94,9 +95,9 @@ for tab in tabList:
    dataTabFrame=fullFrame
   tabColumns+=list(_nu.values())
   tabColumns=list(listFlatter(tabColumns))
-  dataTabFrame[tabColumns].drop_duplicates().to_sql(tabName,pgx,index=False,if_exists='replace',schema='framework')
+  dataTabFrame[tabColumns].drop_duplicates().to_sql(tabName,pgx,index=False,if_exists='replace',schema=eaeSchema)
  else:
-  api[idi][columnList].drop_duplicates().to_sql(tabName,pgx,index=False,if_exists='replace',schema='framework')
+  api[idi][columnList].drop_duplicates().to_sql(tabName,pgx,index=False,if_exists='replace',schema=eaeSchema)
 
 del api
 pgx.dispose()
