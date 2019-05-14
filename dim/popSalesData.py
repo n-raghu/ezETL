@@ -10,7 +10,6 @@ uri='postgresql://' +cfg['eaedb']['uid']+ ':' +cfg['eaedb']['pwd']+ '@' +cfg['ea
 eaeSchema=cfg['eaedb']['schema']
 pgx=dbeng(uri)
 TokenPoint=cfg['salesforce']['token']
-DataPoint=cfg['salesforce']['data']
 tokenParams={'grant_type':'password','client_id':cfg['salesforce']['cid'],'client_secret':cfg['salesforce']['secrect']
     ,'username':cfg['salesforce']['uid'],'password':cfg['salesforce']['pwd']}
 _fmt=cfg['salesforce']['dateformat']

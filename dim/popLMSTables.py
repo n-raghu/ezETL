@@ -74,6 +74,7 @@ def createCollections(sql_table,stage_table,schema_name,uri):
 @r.remote
 def pushChunk(pgTable,tabSchema,pgURI,nuchk,chk):
 	pgsql="COPY " +tabSchema+ "." +pgTable+ " FROM STDIN WITH CSV DELIMITER AS '\t' "
+	chk['row_timestamp']=dtm.utcnow()
 	nuCHK=nuchk.append(chk,sort=False,ignore_index=True)
 	csv_dat=StringIO()
 	nuCHK.to_csv(csv_dat,header=False,index=False,sep='\t')

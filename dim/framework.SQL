@@ -196,7 +196,7 @@ $$
         IF app_code='potter' THEN
           qry=CONCAT(qry,schemaname,'.',dsttab,'(',cols,',rower BIGINT)');
         ELSE
-          qry=CONCAT(qry,schemaname,'.',dsttab,'(instancecode TEXT,',cols,',rower BIGINT)');
+          qry=CONCAT(qry,schemaname,'.',dsttab,'(instancecode TEXT,',cols,',row_timestamp TIMESTAMP WITHOUT TIME ZONE,rower BIGINT)');
         END IF;
         INSERT INTO framework.tabshapetraces(tabquery) SELECT qry;
         EXECUTE qry;
