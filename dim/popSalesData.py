@@ -94,9 +94,13 @@ for tab in tabList:
    dataTabFrame=fullFrame
   tabColumns+=list(_nu.values())
   tabColumns=list(listFlatter(tabColumns))
-  dataTabFrame[tabColumns].drop_duplicates().to_sql(tabName,pgx,index=False,if_exists='replace',schema=eaeSchema)
+  shadowTable=dataTabFrame[tabColumns].drop_duplicates()
+  shadowTable['row_timestamp']=dtm.utcnow()
+  shadowTable.to_sql(tabName,pgx,index=False,if_exists='replace',schema=eaeSchema)
  else:
-  api[idi][columnList].drop_duplicates().to_sql(tabName,pgx,index=False,if_exists='replace',schema=eaeSchema)
+  shadowTable=api[idi][columnList].drop_duplicates()
+  shadowTable['row_timestamp']=dtm.utcnow()
+  shadowTable.to_sql(tabName,pgx,index=False,if_exists='replace',schema=eaeSchema)
 
 del api
 pgx.dispose()

@@ -194,7 +194,7 @@ $$
           )A)X;
         END IF;
         IF app_code='potter' THEN
-          qry=CONCAT(qry,schemaname,'.',dsttab,'(',cols,',rower BIGINT)');
+          qry=CONCAT(qry,schemaname,'.',dsttab,'(',cols,',row_timestamp TIMESTAMP WITHOUT TIME ZONE,rower BIGINT)');
         ELSE
           qry=CONCAT(qry,schemaname,'.',dsttab,'(instancecode TEXT,',cols,',row_timestamp TIMESTAMP WITHOUT TIME ZONE,rower BIGINT)');
         END IF;
