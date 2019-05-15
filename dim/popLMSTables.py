@@ -14,6 +14,7 @@ r.shutdown()
 r.init(include_webui=False)
 appVariables={'app':'lms','instancetype':'mssql','module':'popLMSTables'}
 csize,eaeSchema,uri=dwCNX(tinyset=True)
+row_timestamp=dtm.utcnow()
 tracker=pdf([],columns=['status','instancecode','collection','timestarted','timefinished','chunkstart','chunkfinish','rowversion'])
 objFrame=[]
 
@@ -74,7 +75,7 @@ def createCollections(sql_table,stage_table,schema_name,uri):
 @r.remote
 def pushChunk(pgTable,tabSchema,pgURI,nuchk,chk):
 	pgsql="COPY " +tabSchema+ "." +pgTable+ " FROM STDIN WITH CSV DELIMITER AS '\t' "
-	chk['row_timestamp']=dtm.utcnow()
+	chk['row_timestamp']=row_timestamp
 	nuCHK=nuchk.append(chk,sort=False,ignore_index=True)
 	csv_dat=StringIO()
 	nuCHK.to_csv(csv_dat,header=False,index=False,sep='\t')

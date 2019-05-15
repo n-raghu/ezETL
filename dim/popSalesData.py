@@ -15,6 +15,8 @@ tokenParams={'grant_type':'password','client_id':cfg['salesforce']['cid'],'clien
 _fmt=cfg['salesforce']['dateformat']
 _x=rsq(''' SELECT requesttime FROM framework.api_traces WHERE app='salesforce' ''',pgx)
 _sdate=_x['requesttime'].max()
+row_timestamp=dtm.utcnow()
+
 if isinstance(_sdate,dtm):
     _sdate=_sdate.strftime(_fmt)
 else:
@@ -95,11 +97,11 @@ for tab in tabList:
   tabColumns+=list(_nu.values())
   tabColumns=list(listFlatter(tabColumns))
   shadowTable=dataTabFrame[tabColumns].drop_duplicates()
-  shadowTable['row_timestamp']=dtm.utcnow()
+  shadowTable['row_timestamp']=row_timestamp
   shadowTable.to_sql(tabName,pgx,index=False,if_exists='replace',schema=eaeSchema)
  else:
   shadowTable=api[idi][columnList].drop_duplicates()
-  shadowTable['row_timestamp']=dtm.utcnow()
+  shadowTable['row_timestamp']=row_timestamp
   shadowTable.to_sql(tabName,pgx,index=False,if_exists='replace',schema=eaeSchema)
 
 del api
