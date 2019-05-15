@@ -79,6 +79,8 @@ for tab in tabList:
   fetchColFromAPI=unpackCols+[apiKey]+tabColumns
   fetchColFromAPI=list(set(fetchColFromAPI))
   fullFrame=api[idi][fetchColFromAPI].copy(deep=True)
+  if apiKey=='__no_apikey__':
+      fullFrame[apiKey]=fullFrame.index
   dataTabFrame=pdf([])
   for _col_ in unpackCols:
    rows=[]
