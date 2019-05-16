@@ -76,14 +76,9 @@ for tab in tabList:
   unpackCols=list(_nu.keys())
   tabColumns=[_ for _ in columnList if '.' not in _]
   apiKey=list(mapper['api_keycol'])[0]
-  if apiKey=='__no_apikey__':
-      fetchColFromAPI=unpackCols+tabColumns
-  else:
-      fetchColFromAPI=unpackCols+[apiKey]+tabColumns
+  fetchColFromAPI=unpackCols+[apiKey]+tabColumns
   fetchColFromAPI=list(set(fetchColFromAPI))
   fullFrame=api[idi][fetchColFromAPI].copy(deep=True)
-  if apiKey=='__no_apikey__':
-      fullFrame[apiKey]=fullFrame.index
   dataTabFrame=pdf([])
   for _col_ in unpackCols:
    rows=[]
