@@ -1,6 +1,29 @@
 id,OpportunityId,Product2Id,Name,Quantity,TotalPrice,UnitPrice,ListPrice,CreatedDate,LastModifiedDate,IsDeleted,Parent_item_name__c
 ,Discount__c,Discounted_Unit_Price__c,Opp_Discount__c,Unit_Price__c,Deployment_Date__c,Product_Family__c
 
+'Id'
+'OpportunityId'
+'Product2Id'
+'ProductCode'
+'Name'
+'Quantity'
+'TotalPrice'
+'UnitPrice'
+'ListPrice'
+'CreatedDate'
+'LastModifiedDate'
+'IsDeleted'
+'Parent_item_name__c'
+'Discount__c'
+'Discounted_Unit_Price__c'
+'Invoiced_Unit_Price__c'
+'Opp_Discount__c'
+'Unit_Price__c'
+'Deployment_Date__c'
+'Product_Family__c'
+
+
+
 {
     "attributes": {
         "type": "OpportunityLineItem",

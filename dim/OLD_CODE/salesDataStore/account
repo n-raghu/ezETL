@@ -1,5 +1,35 @@
 select+Id,IsDeleted,MasterRecordId,Name,Type,ParentId,BillingStreet,BillingCity,BillingState,BillingPostalCode,BillingCountry,Website,Industry,AnnualRevenue,NumberOfEmployees,CreatedDate,LastModifiedDate,SystemModstamp,iLMS_Customer__c,Active__c,Company_Size__c,iLMS_Type__c,License_Check__c,Status__c,Account_ARR__c,Account_MRR__c,Region__c,X3rd_Party_LMS__c+from+account'
 
+'IsDeleted'
+'MasterRecordId'
+'Name'
+'Type'
+'ParentId'
+'BillingStreet'
+'BillingCity'
+'BillingState'
+'BillingPostalCode'
+'BillingCountry'
+'Website'
+'Industry'
+'AnnualRevenue'
+'NumberOfEmployees'
+'CreatedDate'
+'LastModifiedDate'
+'SystemModstamp'
+'iLMS_Customer__c'
+'Active__c'
+'Company_Size__c'
+'iLMS_Type__c'
+'License_Check__c'
+'Status__c'
+'Account_ARR__c'
+'Account_MRR__c'
+'Region__c'
+'X3rd_Party_LMS__c'
+
+
+
     "Id": "0013D00000fD8qWQAS",
     "IsDeleted": false,
     "MasterRecordId": null,

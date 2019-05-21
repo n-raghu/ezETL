@@ -3,6 +3,40 @@ id,IsDeleted,AccountId,Name,StageName,Amount,ExpectedRevenue,CloseDate,Type,Lead
 ,Datacenter__c,X3rd_Party_LMS__c,iLMS_Customer__c,iLMS_Type__c,Farm_Instance_Code__c,Potter_Request_ID__c,Contact_Email__c
 ,Active_Contract__c,Acct_Renewed__c
 
+'Id'
+'IsDeleted'
+'AccountId'
+'Name'
+'StageName'
+'Amount'
+'ExpectedRevenue'
+'CloseDate'
+'Type'
+'LeadSource'
+'IsClosed'
+'IsWon'
+'CreatedDate'
+'LastModifiedDate'
+'License_End_Date__c'
+'License_Start_Date__c'
+'Languages__c'
+'Grand_Total__c'
+'Security_Awareness__c'
+'Licensed_Users__c'
+'Reason_Won_Lost__c'
+'Datacenter__c'
+'X3rd_Party_LMS__c'
+'iLMS_Customer__c'
+'iLMS_Type__c'
+'Farm_Instance_Code__c'
+'Potter_Request_ID__c'
+'Contact_Email__c'
+'Active_Contract__c'
+'Acct_Renewed__c'
+
+
+
+
 {
     "attributes": {
         "type": "Opportunity",

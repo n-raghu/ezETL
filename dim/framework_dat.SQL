@@ -103,4 +103,5 @@ SELECT 'purgeRedundantData.py',true,'Purge duplicate data',2,'7:00:00'::TIME,'21
 
 INSERT INTO framework.statements(isactive,statement)
 SELECT true,'REFRESH MATERIALIZED VIEW bi_pl.d_student_summary;'
-SELECT true,'REFRESH MATERIALIZED VIEW bi_pl.f_customer_enrollment;'
+UNION ALL
+SELECT true,'REFRESH MATERIALIZED VIEW bi_pl.f_customer_enrollment;';

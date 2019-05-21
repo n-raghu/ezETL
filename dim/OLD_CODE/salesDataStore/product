@@ -1,5 +1,19 @@
 id,name,ProductCode,IsActive,CreatedDate,LastModifiedDate,Family,IsDeleted,IsArchived,Ecommerce__c,Bucket__c,Product_Grouping__c
 
+'Id'
+'Name'
+'ProductCode'
+'IsActive'
+'CreatedDate'
+'LastModifiedDate'
+'Family'
+'IsDeleted'
+'IsArchived'
+'Ecommerce__c'
+'Bucket__c'
+'Product_Grouping__c'
+
+
 {
     "attributes": {
         "type": "Product2",

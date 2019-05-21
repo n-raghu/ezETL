@@ -128,6 +128,26 @@ CREATE TABLE IF NOT EXISTS framework.api_traces(
   responseok BOOL
 );
 
+CREATE TABLE IF NOT EXISTS framework.api_salesforce_tracker(
+  changeid INT GENERATED ALWAYS AS IDENTITY,
+  pid BIGINT,
+  collection TEXT,
+  start_date DATE,
+  end_date DATE,
+  epoch DOUBLE PRECISION DEFAULT EXTRACT(epoch FROM CURRENT_TIMESTAMP)
+);
+
+CREATE TABLE IF NOT EXISTS framework.api_salesforce_mappers(
+  active BOOL,
+  mapid INT GENERATED ALWAYS AS IDENTITY,
+  sfdc_api TEXT,
+  sfdc_collection TEXT,
+  sfdc_filters TEXT,
+  sfdc_column TEXT,
+  collection TEXT,
+  last_mod_time TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS framework.statements(
   isactive BOOL,
   statement_id INT GENERATED ALWAYS AS IDENTITY,
