@@ -10,7 +10,7 @@ else:
 
 import requests as req
 import json
-from dimlib import pgcnx as dbeng,dtm,pdf,cfg,logError,rsq,dataSession
+from dimlib import pgcnx as dbeng,dtm,pdf,cfg,logError,rsq,dataSession,DataError
 from pandas import concat as pConcat,Series as pSeries,merge as pMerge
 from collections import OrderedDict as odict,Iterable as cIterable
 
@@ -69,7 +69,7 @@ if len(tracker)>0:
         _dataCol_,_sfdcCol_,_columns_=tup
         try:
             api[_sfdcCol_][_columns_.lower().split(',')].to_sql(_dataCol_,pgx,index=False,if_exists='append',schema=eaeSchema)
-        except (DataError,AssertionError,ValueError,IOError,IndexError) as err:
+        except (DataError,AssertionError,ValueError,IOError,IndexError,KeyError) as err:
             print(err)
     tracker['pid']=pid
     tracker.to_sql('api_salesforce_tracker',pgx,index=False,if_exists='append',schema='framework')
