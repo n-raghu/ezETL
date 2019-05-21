@@ -9,7 +9,7 @@ with open('dim.eg.yml','r') as yfl:
 for _key in egdim.keys():
     _val=eae.get(_key,False)
     if not _val:
-        warnmsg='Key ' +_key+ ' Not Found...'
+        warnmsg='Key ' +_key+ ' Not Found. Inherited from example file.'
         print(warnmsg)
     else:
         egdim[_key].update(_val)
