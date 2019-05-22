@@ -184,10 +184,10 @@ SELECT 'opportunitylineitem','Deployment_Date__c';
 
 UPDATE framework.api_salesforce_mappers SET sfdc_api='https://cs70.salesforce.com/services/data/v45.0/query',active=true;
 UPDATE framework.api_salesforce_mappers
-  SET sfdc_filters='stagename=''50 – Closed Won''',collection='salesforce_opportunities_test' WHERE sfdc_collection='opportunity';
+  SET sfdc_filters='stagename=''50 – Closed Won''',collection='salesforce_opportunities' WHERE sfdc_collection='opportunity';
 UPDATE framework.api_salesforce_mappers
-  SET collection='salesforce_accounts_test' WHERE sfdc_collection='account';
+  SET collection='salesforce_accounts' WHERE sfdc_collection='account';
 UPDATE framework.api_salesforce_mappers
-  SET collection='salesforce_products_test' WHERE sfdc_collection='product2';
+  SET collection='salesforce_products' WHERE sfdc_collection='product2';
 UPDATE framework.api_salesforce_mappers
-    SET collection='salesforce_lineitems_test' WHERE sfdc_collection='opportunitylineitem';
+    SET collection='salesforce_lineitems' WHERE sfdc_collection='opportunitylineitem';

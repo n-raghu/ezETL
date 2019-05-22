@@ -112,7 +112,7 @@ def popCollections(icode,connexion,iFrame):
 		rower=str(int(rowdata['rower']))
 		sql='SELECT * FROM ' +eaeSchema+ '.' +rco+ ' LIMIT 0'
 		nuChunk=rsq(sql,pgx)
-		sql="SELECT '" +icode+ "' as instancecode," +scols+ ",CONVERT(BIGINT,sys_ROWVERSION) AS ROWER FROM " +rco+ "(NOLOCK) WHERE CONVERT(BIGINT,sys_ROWVERSION) > " +rower
+		sql="SELECT '" +icode.lower()+ "' as instancecode," +scols+ ",CONVERT(BIGINT,sys_ROWVERSION) AS ROWER FROM " +rco+ "(NOLOCK) WHERE CONVERT(BIGINT,sys_ROWVERSION) > " +rower
 		allFrames=[]
 		try:
 			for chunk in rsq(sql,sqx,chunksize=csize):

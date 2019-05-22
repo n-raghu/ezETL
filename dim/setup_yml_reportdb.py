@@ -1,10 +1,20 @@
 import sys,yaml
 
-with open('eae.yml','r') as yfl:
-    eae=yaml.safe_load(yfl)
+ymlConfigEAE='eae.yml'
+ymlEgDIM='dim.eg.yml'
+ymlConfigDIM='newdim.yml'
+ymlEgTalend='connection.example.properties'
+ymlConfigTalend='connection.properties'
 
-with open('dim.eg.yml','r') as yfl:
-    egdim=yaml.safe_load(yfl)
+try:
+    with open(ymlConfigEAE,'r') as yfl:
+        eae=yaml.safe_load(yfl)
+    with open(ymlEgDIM,'r') as yfl:
+        egdim=yaml.safe_load(yfl)
+    with open(ymlEgTalend,'r') as yfl:
+        egTalend=yaml.safe_load(yfl)
+except IOError as err:
+    sys.exit(err)
 
 for _key in egdim.keys():
     _val=eae.get(_key,False)
@@ -14,5 +24,7 @@ for _key in egdim.keys():
     else:
         egdim[_key].update(_val)
 
-with open('newdim.yml','w') as yfl:
+
+
+with open(ymlConfigDIM,'w') as yfl:
     yaml.dump(egdim,yfl,default_flow_style=False)

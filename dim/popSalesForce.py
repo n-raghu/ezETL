@@ -60,6 +60,7 @@ for _col_ in sfdc_collections:
         tracker=tracker.append({'collection':_col_,'start_date':_col_max,'end_date':dtm.utcnow().date()},ignore_index=True)
 
 if len(tracker)>0:
+    trackerCollection=list(set(list(tracker['collection'])))
     cmapR=mapper[['sfdc_column','sfdc_collection','collection']].copy()
     cmapR['columns']=cmapR.groupby(['collection','sfdc_collection'])['sfdc_column'].transform(lambda x:','.join(x))
     del cmapR['sfdc_column']
@@ -67,7 +68,11 @@ if len(tracker)>0:
     collectionList=list(zip(cmapR['collection'],cmapR['sfdc_collection'],cmapR['columns']))
     for tup in collectionList:
         _dataCol_,_sfdcCol_,_columns_=tup
+        if _sfdcCol_ not in trackerCollection:
+            continue
         try:
+            columnList=_columns_.lower().split(',')
+            columnList.append('row_timestamp')
             api[_sfdcCol_][_columns_.lower().split(',')].to_sql(_dataCol_,pgx,index=False,if_exists='append',schema=eaeSchema)
         except (DataError,AssertionError,ValueError,IOError,IndexError,KeyError) as err:
             print(err)

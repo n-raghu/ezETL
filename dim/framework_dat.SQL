@@ -91,15 +91,19 @@ UPDATE framework.collectionmaps SET stage_fields= 'fldUserDefinedCourseId,fldCou
 WHERE collection='tbl_course_name' AND instancetype='mssql';
 
 INSERT INTO framework.jobs(jobid,status,jobname,joborder,biz_starttime,biz_endtime,latency_bizhrs,latency_nonbizhrs,launcher)
-SELECT 'popStagingTables.py',true,'Staging Tables',1,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
+SELECT 'popLMSTables.py',true,'Staging Tables',3,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
 UNION ALL
-SELECT 'stagePKIFields.py',true,'Get Primary Key Index',3,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
+SELECT 'stageLMSPKIFields.py',true,'Get Primary Key Index',5,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
 UNION ALL
-SELECT '../IEL_BI/job_Load_Staging_to_DV/job_Load_Staging_to_DV_run.sh',false,'Build Vault',4,'18:00:00'::TIME,'21:00:00'::TIME,600,3600,'sh'
+SELECT '../IEL_BI/job_Load_Staging_to_DV/job_Load_Staging_to_DV_run.sh',false,'Build Vault',10,'18:00:00'::TIME,'21:00:00'::TIME,600,3600,'sh'
 UNION ALL
-SELECT '../IEL_BI/job_Drop_Staging_Tables/job_Drop_Staging_Tables_run.sh',false,'PURGE STAGING',5,'18:00:00'::TIME,'21:00:00'::TIME,600,3600,'sh'
+SELECT '../IEL_BI/job_Drop_Staging_Tables/job_Drop_Staging_Tables_run.sh',false,'PURGE STAGING',11,'18:00:00'::TIME,'21:00:00'::TIME,600,3600,'sh'
 UNION ALL
-SELECT 'purgeRedundantData.py',true,'Purge duplicate data',2,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python';
+SELECT 'purgeRedundantData.py',false,'Purge duplicate data',9,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
+UNION ALL
+SELECT 'popSalesForce.py',true,'Fetch data from Salesforce',1,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
+UNION ALL
+SELECT 'popPotterTables.py',true,'Fetch data from Potter',2,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python';
 
 INSERT INTO framework.statements(isactive,statement)
 SELECT true,'REFRESH MATERIALIZED VIEW bi_pl.d_student_summary;'
