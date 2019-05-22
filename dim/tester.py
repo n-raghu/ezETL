@@ -1,91 +1,37 @@
-import requests as req
-import json
-from dimlib import pgcnx as dbeng,dtm,pdf,cfg,logError,rsq
-from pandas import concat as pConcat,Series as pSeries,merge as pMerge
-from collections import OrderedDict as odict,Iterable as cIterable
+import smtplib
+from os.path import basename
+from time import sleep as ziz
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.utils import COMMASPACE, formatdate
+from email.mime.application import MIMEApplication
+from dimlib import dwCNX,pdf,rsq,y,pgcnx,dtm,sessionmaker
 
-app='salesforce'
-api=odict()
-uri='postgresql://' +cfg['eaedb']['uid']+ ':' +cfg['eaedb']['pwd']+ '@' +cfg['eaedb']['host']+ ':' +str(int(cfg['eaedb']['port']))+ '/' +cfg['eaedb']['db']
-pgx=dbeng(uri)
-TokenPoint=cfg['salesforce']['token']
-DataPoint=cfg['salesforce']['data']
-tokenParams={'grant_type':'password','client_id':cfg['salesforce']['cid'],'client_secret':cfg['salesforce']['secrect']
-    ,'username':cfg['salesforce']['uid'],'password':cfg['salesforce']['pwd']}
-dataParams={'start_date':'05/01/2019','end_date':'05/02/2019'}
-tokenHeadR={'content-type':'application/x-www-form-urlencoded'}
-r=req.post(TokenPoint,params=tokenParams,headers=tokenHeadR)
-_record=[{'app':app,'endpoint':r.url,'headers':json.dumps(tokenHeadR),'params':json.dumps(tokenParams),'responsecode':str(r),'responseok':r.ok,'requesttime':dtm.utcnow()}]
-pdf(_record).to_sql('api_traces',pgx,index=False,if_exists='append',schema='framework')
-dataHeadR={'accept':cfg['salesforce']['data_ctype'],'content-type':cfg['salesforce']['data_ctype']
-        ,'Authorization':'Bearer {}'.format(json.loads(r.text)['access_token'])}
+def getConfig():
+    with open('dimConfig.yml') as yFile:
+        cfg=y.safe_load(yFile)
+    return cfg['smtp']
 
-def listFlatter(l):
-    for el in l:
-        if isinstance(el, cIterable) and not isinstance(el,(str,bytes)):
-            yield from listFlatter(el)
-        else:
-            yield el
+smtp=getConfig()
+csize,eaeSchema,uri=dwCNX(tinyset=True)
+stakes=rsq('SELECT * FROM framework.stakeholders WHERE active=true',pgcnx(uri))
+tolist=list(stakes.loc[(stakes['tolist']==True),['recepient']]['recepient'])
+cclist=list(stakes.loc[(stakes['cclist']==True),['recepient']]['recepient'])
 
-mapper=rsq('SELECT * FROM framework.api_mappers WHERE active=true',pgx)
-tfo=mapper[['point_name','endpoint']].copy(deep=True)
-tfo.drop_duplicates('point_name',keep='first',inplace=True)
-points=list(zip(tfo['point_name'],tfo['endpoint']))
-mapper['point_col']=mapper['point_col'].str.lower()
+msg=MIMEMultipart()
+mailFile='mailFile'
+msg['From']='EAE Data Integration <statzen@eae.inspireme.com>'
+msg['To']=','.join(cclist)
+msg['Date']=formatdate(localtime=True)
+msg['Subject']='Summary of Data Integration to EAE Database.'
+msg.attach(MIMEText('Check Attachment.... Thank you'))
+with open(mailFile,"rb") as fil:
+    mimeFile=MIMEApplication(fil.read(),Name=basename(mailFile))
+mimeFile['Content-Disposition'] = 'attachment; filename="%s"' % basename(mailFile)
+msg.attach(mimeFile)
+s_smtp=smtplib.SMTP(smtp['server'])
+s_smtp.starttls()
+_response_=s_smtp.sendmail(msg['From'],[msg['To']],msg.as_string())
+s_smtp.close()
 
-# Fetch data from active API
-for pnt in points:
-    idi,hit=pnt
-    R=req.post(hit,data=json.dumps(dataParams),headers=dataHeadR)
-    api[idi]=pdf(json.loads(R.text))
-    _record=[{'app':app,'endpoint':idi,'headers':json.dumps(dataHeadR),'params':json.dumps(dataParams),'responsecode':str(R),'responseok':R.ok,'requesttime':dtm.utcnow()}]
-    pdf(_record).to_sql('api_traces',pgx,index=False,if_exists='append',schema='framework')
-    api[idi].columns=map(str.lower,api[idi].columns)
-
-# Create list of tables to be created
-tabFrame=mapper[['point_name','point_col','collection']].copy(deep=True)
-tabFrame['point_col']=tabFrame.groupby('collection')['point_col','point_name'].transform(lambda x:','.join(x))
-tabFrame.drop_duplicates(inplace=True)
-tabList=list(zip(tabFrame['point_name'],tabFrame['point_col'],tabFrame['collection']))
-
-# Create Table Frames
-for tab in tabList:
-    idi,columnSTR,tabName=tab
-    columnList=columnSTR.split(',')
-    parseCol=[{k.split('.')[0]:k.split('.')[1]} for k in columnList if "." in k]
-    if len(parseCol)>0:
-        _nu={}
-        for _itr in parseCol:
-            for _k,_v in _itr.items():
-                key=_nu.get(_k,[])
-                key.append(_v)
-                _nu[_k]=key
-        unpackCols=list(_nu.keys())
-        tabColumns=[_ for _ in columnList if '.' not in _]
-        apiKey=list(mapper['api_keycol'])[0]
-        fetchColFromAPI=unpackCols+[apiKey]+tabColumns
-        fetchColFromAPI=list(set(fetchColFromAPI))
-        fullFrame=api[idi][fetchColFromAPI].copy(deep=True)
-        dataTabFrame=pdf([])
-        for _col_ in unpackCols:
-            rows=[]
-            _=fullFrame.apply(lambda row: [rows.append({apiKey:row[apiKey],_col_:nn}) for nn in row[_col_]],axis=1)
-            _frm_=pdf(rows)
-            _frm_=pConcat([_frm_,_frm_[_col_].apply(pSeries)],axis=1).drop(_col_,axis=1)
-            _frm_.columns=map(str.lower,_frm_.columns)
-            if len(dataTabFrame)>0:
-                dataTabFrame=pMerge(dataTabFrame,_frm_,on='opportunityid',how='inner')
-            else:
-                dataTabFrame=_frm_.copy(deep=True)
-        if len(dataTabFrame)>0:
-            dataTabFrame=pMerge(dataTabFrame,fullFrame,on='opportunityid',how='inner')
-        else:
-            dataTabFrame=fullFrame
-        tabColumns+=list(_nu.values())
-        tabColumns=list(listFlatter(tabColumns))
-        dataTabFrame[tabColumns].drop_duplicates().to_sql(tabName,pgx,index=False,if_exists='replace',schema='framework')
-    else:
-        api[idi][columnList].drop_duplicates().to_sql(tabName,pgx,index=False,if_exists='replace',schema='framework')
-
-del api
-pgx.dispose()
+print(_response_)

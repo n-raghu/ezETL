@@ -28,6 +28,8 @@ default_start_date=str(cfg['salesforce']['start_date'])
 tokenHeadR={'content-type':'application/x-www-form-urlencoded'}
 r=req.post(TokenPoint,params=tokenParams,headers=tokenHeadR)
 _record=[{'app':app,'endpoint':r.url,'headers':json.dumps(tokenHeadR),'params':json.dumps(tokenParams),'responsecode':str(r),'responseok':r.ok,'requesttime':dtm.utcnow()}]
+if not r.ok:
+    logError(pid,app,'TokenError: ' +str(r.text),uri)
 pdf(_record).to_sql('api_traces',pgx,index=False,if_exists='append',schema='framework')
 dataHeadR={'accept':cfg['salesforce']['data_ctype'],'content-type':cfg['salesforce']['data_ctype']
         ,'Authorization':'Bearer {}'.format(json.loads(r.text)['access_token'])}
@@ -51,6 +53,8 @@ for _col_ in sfdc_collections:
     api_query_link=api_version_link+ '/?q=select+' +column_str+ '+from+' +_col_+ whereClause
     R=req.get(api_query_link,headers=dataHeadR)
     _record=[{'app':app,'endpoint':api_query_link,'headers':json.dumps(dataHeadR),'params':None,'responsecode':str(R),'responseok':R.ok,'requesttime':dtm.utcnow()}]
+    if not R.ok:
+        logError(pid,app,'DataError from Salesforce: ' +_col_+ '. ' +str(R.text),uri)
     pdf(_record).to_sql('api_traces',pgx,index=False,if_exists='append',schema='framework')
     api[_col_]=pdf(json.loads(R.text)['records'])
     if len(api[_col_])>0:
@@ -75,7 +79,7 @@ if len(tracker)>0:
             columnList.append('row_timestamp')
             api[_sfdcCol_][_columns_.lower().split(',')].to_sql(_dataCol_,pgx,index=False,if_exists='append',schema=eaeSchema)
         except (DataError,AssertionError,ValueError,IOError,IndexError,KeyError) as err:
-            print(err)
+            logError(pid,app,'DataError at staging: ' +_sfdcCol_+ '. ' +str(err),uri)
     tracker['pid']=pid
     tracker.to_sql('api_salesforce_tracker',pgx,index=False,if_exists='append',schema='framework')
 
