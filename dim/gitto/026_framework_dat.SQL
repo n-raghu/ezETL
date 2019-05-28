@@ -91,9 +91,17 @@ UPDATE framework.collectionmaps SET stage_fields= 'fldUserDefinedCourseId,fldCou
 WHERE collection='tbl_course_name' AND instancetype='mssql';
 
 INSERT INTO framework.jobs(jobid,status,jobname,joborder,biz_starttime,biz_endtime,latency_bizhrs,latency_nonbizhrs,launcher)
-SELECT 'popLMSTables.py',true,'Staging Tables',3,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
+SELECT 'popLMSTables.py',true,'Staging LMS Tables',3,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
 UNION ALL
-SELECT 'stageLMSPKIFields.py',true,'Get Primary Key Index',5,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
+SELECT 'popPhishTables.py',false,'Staging PHISH Tables',4,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
+UNION ALL
+SELECT 'stagePotterPKIFields.py',false,'Get Primary Key Index',5,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
+UNION ALL
+SELECT 'stagePhishPKIFields.py',false,'Get Primary Key Index',7,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
+UNION ALL
+SELECT 'stageLMSPKIFields.py',true,'Get Primary Key Index',6,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
+UNION ALL
+SELECT 'execStatements.py',true,'Execute Custom Statements',12,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
 UNION ALL
 SELECT '../IEL_BI/job_Load_Staging_to_DV/job_Load_Staging_to_DV_run.sh',false,'Build Vault',10,'18:00:00'::TIME,'21:00:00'::TIME,600,3600,'sh'
 UNION ALL
