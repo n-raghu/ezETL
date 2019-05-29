@@ -13,7 +13,7 @@ except ImportError:
     raise ImportError(' Module(s) not installed...')
 
 with open('dimConfig.yml') as ymlFile:
-        cfg=y.load(ymlFile)
+        cfg=y.safe_load(ymlFile)
 
 migrationSQL='CREATE SCHEMA IF NOT EXISTS framework; CREATE TABLE IF NOT EXISTS framework.migrations(module TEXT,sql_type TEXT, sid INT GENERATED ALWAYS AS IDENTITY,migration_time TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP);'
 uri='postgresql://' +cfg['eaedb']['user']+ ':' +cfg['eaedb']['passwd']+ '@' +cfg['eaedb']['server']+ ':' +str(int(cfg['eaedb']['port']))+ '/' +cfg['eaedb']['db']
