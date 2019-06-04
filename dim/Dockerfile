@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 		tk-dev \
 		uuid-dev \
 		htop \
+		less \
 	&& rm -rf /var/lib/apt/lists/*
 
 ENV GPG_KEY 0D96DF4D4110E5C43FBFB17F2D347EA6AA65421D
@@ -82,10 +83,16 @@ RUN set -ex; \
 		\) -exec rm -rf '{}' +; \
 	rm -f get-pip.py
 
+RUN apt update && apt-get install apt-transport-https ca-certificates -y \
+&& curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
+&& curl https://packages.microsoft.com/config/debian/9/prod.list > /etc/apt/sources.list.d/mssql-release.list
+
+RUN apt-get update 
+RUN ACCEPT_EULA=Y apt-get install msodbcsql17 -y
+
 ADD modules /app/
 WORKDIR /app
 RUN pip install -r modules
 RUN pip install -U ray
-RUN apt install less -y
 
 CMD ["/bin/bash"]
