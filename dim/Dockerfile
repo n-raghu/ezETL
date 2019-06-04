@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	&& rm -rf /var/lib/apt/lists/*
 
 ENV GPG_KEY 0D96DF4D4110E5C43FBFB17F2D347EA6AA65421D
-ENV PYTHON_VERSION 3.7.3
+ENV PYTHON_VERSION 3.7.1
 
 RUN set -ex \
 	\
@@ -85,5 +85,7 @@ RUN set -ex; \
 ADD modules /app/
 WORKDIR /app
 RUN pip install -r modules
+RUN pip install -U ray
+RUN apt install less -y
 
 CMD ["/bin/bash"]

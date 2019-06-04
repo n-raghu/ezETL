@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS framework.jobs(
   biz_starttime TIME WITHOUT TIME ZONE,
   biz_endtime TIME WITHOUT TIME ZONE,
   latency_bizhrs INT,
-  latency_nonbizhrs INT
+  latency_nonbizhrs INT,
+  last_mod_stamp TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS framework.tracker(
@@ -23,7 +24,8 @@ CREATE TABLE IF NOT EXISTS framework.tracker(
 CREATE TABLE IF NOT EXISTS framework.datatypes(
   mssql text,
   mysql text,
-  pgsql text
+  pgsql text,
+  last_mod_stamp TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS framework.tabshape(
@@ -34,7 +36,7 @@ CREATE TABLE IF NOT EXISTS framework.tabshape(
   column_str TEXT
 );
 
-CREATE TABLE IF NOT EXISTS framework.instanceconfig (
+CREATE TABLE IF NOT EXISTS framework.instanceconfig(
     instanceid INT GENERATED ALWAYS AS IDENTITY,
     isactive BOOL,
     app TEXT,
@@ -45,7 +47,8 @@ CREATE TABLE IF NOT EXISTS framework.instanceconfig (
     uid TEXT,
     pwd TEXT,
     dbname TEXT,
-	instancedesc TEXT
+	instancedesc TEXT,
+  last_mod_stamp TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS framework.collectiontracker(
@@ -70,7 +73,8 @@ CREATE TABLE IF NOT EXISTS framework.collectionmaps(
   stage_table TEXT,
   stage_fields TEXT,
   pki_table TEXT,
-  pki_fields TEXT
+  pki_fields TEXT,
+  last_mod_stamp TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS framework.errorlogs(
@@ -116,7 +120,7 @@ CREATE TABLE IF NOT EXISTS framework.stakeholders(
   active BOOL,
   tolist BOOL,
   cclist BOOL,
-  last_mod_time TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  last_mod_stamp TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS framework.api_traces(
@@ -135,7 +139,7 @@ CREATE TABLE IF NOT EXISTS framework.api_salesforce_tracker(
   collection TEXT,
   start_date DATE,
   end_date DATE,
-  epoch DOUBLE PRECISION DEFAULT EXTRACT(epoch FROM CURRENT_TIMESTAMP)
+  last_mod_stamp TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS framework.api_salesforce_mappers(
@@ -146,14 +150,15 @@ CREATE TABLE IF NOT EXISTS framework.api_salesforce_mappers(
   sfdc_filters TEXT,
   sfdc_column TEXT,
   collection TEXT,
-  last_mod_time TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  last_mod_stamp TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS framework.statements(
   isactive BOOL,
-  statement_id INT GENERATED ALWAYS AS IDENTITY,
+  statement_id INT ,
   statement TEXT,
-  created DATE DEFAULT CURRENT_DATE
+  statement_tbl_id INT GENERATED ALWAYS AS IDENTITY,
+  last_mod_stamp TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS framework.volatiletracker AS

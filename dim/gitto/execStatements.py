@@ -8,7 +8,7 @@ from dimlib import dataSession,rsq,dwCNX,pgcnx,alchemyEXC,logError
 
 _,_,uri=dwCNX()
 pgx=pgcnx(uri)
-getStatements=''' SELECT statement FROM framework.statements WHERE isactive=true '''
+getStatements=''' SELECT statement FROM framework.statements WHERE isactive=true ORDER BY statement_id '''
 allStatements=rsq(getStatements,pgx)
 
 if len(allStatements)>0:

@@ -1,11 +1,9 @@
 INSERT INTO framework.instanceconfig(isactive,app,instancetype,instancecode,hostip,hport,uid,pwd,dbname,instancedesc)
-SELECT false, 'lms', 'mssql', 'devqa', '10.200.0.42\DEVSQL', 49887, 'lmsreaduser', 'lmsreaduser', 'iLMSDEV_REPL', 'local replica'
+SELECT true, 'lms', 'mssql', 'dev', 'SERVER2\DEVSQL', 49887, 'lmsreaduser', 'lmsreaduser', 'iLMSDEV_REPL', 'local replica'
 UNION ALL
-SELECT false, 'lms', 'mssql', 'local', '10.200.0.42\DEVSQL', 49887, 'lmsreaduser', 'lmsreaduser', 'iLMSDEV_REPL', 'local replica'
+SELECT true, 'phishproof', 'mysql', 'dev', 'SERVER2', 3306, 'potter', 'potter', 'phishproof', 'local replica'
 UNION ALL
-SELECT false, 'phishproof', 'mysql', 'local', '10.200.0.42\DEVSQL', 1433, 'lmsreaduser', 'lmsreaduser', 'iLMSDEV_REPL', 'local replica'
-UNION ALL
-SELECT true, 'potter', 'mysql', 'local', '10.200.0.42', 3306, 'potter', 'potter', 'Potter', 'local dev';
+SELECT true, 'potter', 'mysql', 'dev', 'SERVER2', 3306, 'potter', 'potter', 'Potter', 'local dev';
 
 INSERT INTO framework.datatypes
 SELECT 'bigint','DOUBLE PRECISION','DOUBLE PRECISION'
@@ -91,17 +89,9 @@ UPDATE framework.collectionmaps SET stage_fields= 'fldUserDefinedCourseId,fldCou
 WHERE collection='tbl_course_name' AND instancetype='mssql';
 
 INSERT INTO framework.jobs(jobid,status,jobname,joborder,biz_starttime,biz_endtime,latency_bizhrs,latency_nonbizhrs,launcher)
-SELECT 'popLMSTables.py',true,'Staging LMS Tables',3,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
+SELECT 'popLMSTables.py',true,'Staging Tables',3,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
 UNION ALL
-SELECT 'popPhishTables.py',false,'Staging PHISH Tables',4,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
-UNION ALL
-SELECT 'stagePotterPKIFields.py',false,'Get Primary Key Index',5,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
-UNION ALL
-SELECT 'stagePhishPKIFields.py',false,'Get Primary Key Index',7,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
-UNION ALL
-SELECT 'stageLMSPKIFields.py',true,'Get Primary Key Index',6,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
-UNION ALL
-SELECT 'execStatements.py',true,'Execute Custom Statements',12,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
+SELECT 'stageLMSPKIFields.py',true,'Get Primary Key Index',5,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python'
 UNION ALL
 SELECT '../IEL_BI/job_Load_Staging_to_DV/job_Load_Staging_to_DV_run.sh',false,'Build Vault',10,'18:00:00'::TIME,'21:00:00'::TIME,600,3600,'sh'
 UNION ALL
@@ -113,7 +103,11 @@ SELECT 'popSalesForce.py',true,'Fetch data from Salesforce',1,'7:00:00'::TIME,'2
 UNION ALL
 SELECT 'popPotterTables.py',true,'Fetch data from Potter',2,'7:00:00'::TIME,'21:00:00'::TIME,600,3600,'python';
 
-INSERT INTO framework.statements(isactive,statement)
-SELECT true,'REFRESH MATERIALIZED VIEW bi_pl.d_student_summary;'
+INSERT INTO framework.statements(statement_id,statement)
+SELECT 5,'SELECT elt.udf_clean_soft_ref_integrity();'
 UNION ALL
-SELECT true,'REFRESH MATERIALIZED VIEW bi_pl.f_customer_enrollment;';
+SELECT 10,'REFRESH MATERIALIZED VIEW bi_pl.d_student_summary;'
+UNION ALL
+SELECT 10,'REFRESH MATERIALIZED VIEW bi_pl.f_customer_enrollment;';
+
+UPDATE framework.statements SET isactive=true;

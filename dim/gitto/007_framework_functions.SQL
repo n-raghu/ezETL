@@ -23,6 +23,16 @@ $$
 LANGUAGE plpgsql VOLATILE
 COST 100;
 
+CREATE OR REPLACE FUNCTION get_timestamp() RETURNS TRIGGER
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    NEW.last_mod_stamp=CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION framework.createcollection(srctab TEXT, dsttab TEXT,schemaname TEXT,app_code TEXT) RETURNS TEXT
 AS
 $$

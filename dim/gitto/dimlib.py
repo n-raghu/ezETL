@@ -3,7 +3,7 @@ try:
 	from collections import OrderedDict as odict
 	from pypyodbc import connect as sqlCnx
 	from pandas import read_sql_query as rsq,DataFrame as pdf
-	from sqlalchemy import create_engine as pgcnx,exc as alchemyEXC
+	from sqlalchemy import create_engine as pgcnx
 	from psycopg2 import connect as pgconnect
 	from sqlalchemy.sql import text as alchemyText
 	from pandas.core.groupby.groupby import DataError
@@ -33,13 +33,13 @@ def dataSession(urx):
 	Session=SessionClass()
 	return Session
 
-def objects_sql(urx,itype):
+def objects_sql(urx,atype,itype):
 	insList_io=[]
 	cnxPGX=pgcnx(urx)
 	SessionClass=sessionmaker(bind=cnxPGX)
 	Session=SessionClass()
-	insData=cnxPGX.execute("SELECT * FROM framework.instanceconfig WHERE isactive=true AND instancetype='" +itype+ "' ")
-	colFrame_io=rsq("SELECT icode,instancetype,app,collection,s_table,rower,stg_cols,pkitab,pki_cols FROM framework.live_instancecollections() WHERE instancetype='" +itype+ "' ",cnxPGX)
+	insData=cnxPGX.execute("SELECT * FROM framework.instanceconfig WHERE isactive=true AND instancetype='" +itype+ "' AND app='" +atype+ "' ")
+	colFrame_io=rsq("SELECT icode,instancetype,app,collection,s_table,rower,stg_cols,pkitab,pki_cols FROM framework.live_instancecollections() WHERE instancetype='" +itype+ "' AND app='" +atype+ "' ",cnxPGX)
 	for cnx in insData:
 		dat=odict(cnx)
 		insDict=odict()
