@@ -37,7 +37,7 @@ def recordRowVersions():
 		issue=False
 	return issue
 
-sql_dict=objects_sql(uri,appVariables['instancetype'])
+sql_dict=objects_sql(uri,appVariables['app'],appVariables['instancetype'])
 insList=sql_dict['insList']
 colFrame=sql_dict['frame']
 

@@ -90,7 +90,7 @@ RUN apt update && apt-get install apt-transport-https ca-certificates -y \
 RUN apt-get update 
 RUN ACCEPT_EULA=Y apt-get install msodbcsql17 -y
 
-ADD modules /app/
+ADD gitto/modules /app/
 WORKDIR /app
 RUN pip install -r modules
 RUN pip install -U ray

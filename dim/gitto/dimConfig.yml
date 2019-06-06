@@ -1,6 +1,6 @@
 eaedb:
   port: 5432
-  server: 172.17.0.3
+  server: 172.17.0.6
   user: postgres
   passwd: reporter
   db: reportingdb

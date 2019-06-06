@@ -35,12 +35,17 @@ def recordRowVersions():
 		issue=False
 	return issue
 
-sql_dict=objects_sql(uri,appVariables['instancetype'])
+sql_dict=objects_sql(uri,appVariables['app'],appVariables['instancetype'])
 insList=sql_dict['insList']
 colFrame=sql_dict['frame']
 
 def copyCollectionShape(one_ins,uri):
-	sqx=mysqlCNX(user=one_ins['user'],password=one_ins['password'],port=one_ins['port'],database=one_ins['database'],host=one_ins['host'])
+	try:
+		sqx=mysqlCNX(user=one_ins['user'],password=one_ins['password'],port=int(one_ins['port']),database=one_ins['database'],host=one_ins['host'])
+	except (mysqlOpErr,mysqlErr) as err:
+		print('Error Connecting to ' +one_ins['host']+ ' instance. See Error Logs for more details. ')
+		logError(pid,appVariables['module'],str(err),uri)
+		return False
 	nuSession=dataSession(uri)
 	nuSession.execute("DELETE FROM framework.tabshape WHERE app='" +appVariables['app']+ "' ")
 	nuSession.commit()
@@ -80,30 +85,17 @@ def pushChunk(instancecode,pgTable,tabSchema,pgURI,nuchk,chk):
 	del chk
 	del nuCHK
 	del nuchk
-	alterQL="SELECT COLUMN_NAME AS col_name FROM information_schema.columns WHERE table_name='" +pgTable+ "' AND table_schema='" +tabSchema+ "' AND data_type='numeric' "
-	alterFrame=rsq(alterQL,kon)
 	kon.close()
-	col_list=list(alterFrame['col_name'])
-	if len(col_list)>0:
-		alterSQL='ALTER TABLE ' +tabSchema +'.'+ pgTable
-		for _col_ in col_list:
-			alterSQL+=' ALTER COLUMN ' +_col_+ ' TYPE BOOL USING CASE WHEN ' +_col_+ '=0 THEN false WHEN ' +_col_+ '>0 THEN true ELSE null END,'
-		if alterSQL.endswith(','):
-			alterSQL=alterSQL[:-1]
-		nuSession=dataSession(pgURI)
-		nuSession.execute(alterSQL)
-		nuSession.commit()
-		nuSession.close()
 	return True
 
 def popCollections(icode,one_ins,iFrame):
 	pgx=pgcnx(uri)
 	trk=pdf([],columns=['collection','chunkstart','chunkfinish','rowversion','status','timestarted','timefinished'])
 	try:
-		sqx=mysqlCNX(user=one_ins['user'],password=one_ins['password'],port=one_ins['port'],database=one_ins['database'],host=one_ins['host'])
-	except mysqlErr as err:
+		sqx=mysqlCNX(user=one_ins['user'],password=one_ins['password'],port=int(one_ins['port']),database=one_ins['database'],host=one_ins['host'],use_pure=False)
+	except (mysqlErr,mysqlOpErr) as err:
 		print('Error Connecting to ' +icode+ ' instance. See Error Logs for more details. ')
-		logError(pid,appVariables['module'],err,uri)
+		logError(pid,appVariables['module'],str(err),uri)
 		return trk
 	chunk=pdf([],columns=['model'])
 	for idx,rowdata in iFrame.iterrows():
@@ -120,9 +112,29 @@ def popCollections(icode,one_ins,iFrame):
 			for chunk in rsq(sql,sqx,chunksize=csize):
 				cstart=dtm.utcnow()
 				chunk.columns=map(str.lower,chunk.columns)
+				print(rco)
+				if rco=='tbl_salesforce_request_master':
+					print(chunk[['bitisicomposerenabled','bitismobileappenabled','bitisstatezenavailable']])
 				pushChunk(icode,s_table,eaeSchema,uri,nuChunk.copy(deep=True),chunk.copy(deep=True))
 				trk=trk.append({'status':False,'collection':rco,'rowversion':chunk['rower'].max(),'chunkfinish':dtm.utcnow(),'chunkstart':cstart},ignore_index=True)
 				noChange=False
+			col_list=[]
+			if len(chunk)>0:
+				t_kon=pgconnect(uri)
+				alterQL="SELECT COLUMN_NAME AS col_name FROM information_schema.columns WHERE table_name='" +s_table+ "' AND table_schema='" +eaeSchema+ "' AND data_type='numeric' "
+				alterFrame=rsq(alterQL,t_kon)
+				t_kon.close()
+				col_list=list(alterFrame['col_name'])
+			if len(col_list)>0:
+				alterSQL='ALTER TABLE ' +eaeSchema +'.'+ s_table
+				for _col_ in col_list:
+					alterSQL+=' ALTER COLUMN ' +_col_+ ' TYPE BOOL USING CASE WHEN ' +_col_+ '=0 THEN false WHEN ' +_col_+ '>0 THEN true ELSE null END,'
+				if alterSQL.endswith(','):
+					alterSQL=alterSQL[:-1]
+				nuSession=dataSession(uri)
+				nuSession.execute(alterSQL)
+				nuSession.commit()
+				nuSession.close()
 			trk.loc[(trk['collection']==rco),['status']]=True
 		except (DataError,AssertionError,ValueError,IOError,IndexError) as err:
 			logError(pid,appVariables['module'],'Chunk Error: ' +str(rco)+ ' ' +str(err),uri)

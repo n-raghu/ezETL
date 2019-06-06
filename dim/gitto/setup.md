@@ -2,7 +2,7 @@
 ### GUIDE TO SETUP ENVIRONMENT AND START WITH EXECUTION
 #### Create sudo user
 
-1. Lets assume the created user is <sudouser>
+1. Lets assume the created user is _sudouser_
 
 #### Update YUM & install YUM UTILS
 ```

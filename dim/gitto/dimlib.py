@@ -11,7 +11,7 @@ try:
 	from datetime import datetime as dtm
 	from sqlalchemy.orm import sessionmaker
 	from io import StringIO
-	from mysql.connector import connect as mysqlCNX, Error as mysqlErr
+	from mysql.connector import connect as mysqlCNX, Error as mysqlErr, OperationalError as mysqlOpErr
 except ImportError:
 	raise ImportError(' Module(s) not installed...')
 
@@ -39,7 +39,7 @@ def objects_sql(urx,atype,itype):
 	SessionClass=sessionmaker(bind=cnxPGX)
 	Session=SessionClass()
 	insData=cnxPGX.execute("SELECT * FROM framework.instanceconfig WHERE isactive=true AND instancetype='" +itype+ "' AND app='" +atype+ "' ")
-	colFrame_io=rsq("SELECT icode,instancetype,app,collection,s_table,rower,stg_cols,pkitab,pki_cols FROM framework.live_instancecollections() WHERE instancetype='" +itype+ "' AND app='" +atype+ "' ",cnxPGX)
+	colFrame_io=rsq("SELECT icode,instancetype,app,collection,s_table,rower,stg_cols,pkitab,pki_cols FROM framework.live_instancecollections() WHERE instancetype='" +itype+ "' AND app='" +atype+ "' " ,cnxPGX)
 	for cnx in insData:
 		dat=odict(cnx)
 		insDict=odict()
