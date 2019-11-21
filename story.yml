@@ -1,0 +1,12 @@
+datastore:
+    host: csvdb
+    port: 5432
+    uid: pgusr
+    pwd: pgusr
+    dbn: csvdata
+
+file_extension: db8io
+fmt_extension: json
+max_workers: 5
+field_separator: '|'
+file_path_S3: 'dat/ins/'

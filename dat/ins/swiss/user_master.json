@@ -1,0 +1,12 @@
+[
+    {
+        "user_id": "INT",
+        "user_name": "TEXT",
+        "instancecode": "TEXT",
+        "row_timestamp": "TIMESTAMP WITHOUT TIME ZONE",
+        "eae_enabled": "BOOLEAN",
+        "eae_admin": "DATE",
+        "channel_partner": "BOOLEAN",
+        "gdpr_permission": "DATE"
+    }
+]

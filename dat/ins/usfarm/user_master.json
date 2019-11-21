@@ -1,0 +1,10 @@
+[
+    {
+        "user_id": "INT",
+        "user_name": "TEXT",
+        "instancecode": "TEXT",
+        "row_timestamp": "TIMESTAMP WITHOUT TIME ZONE",
+        "eae_enabled": "BOOLEAN",
+        "channel_partner": "BOOLEAN"
+    }
+]

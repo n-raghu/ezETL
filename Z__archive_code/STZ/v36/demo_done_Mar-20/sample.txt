@@ -1,0 +1,38 @@
+from pandas import read_sql
+from pypyodbc import connect
+import ray
+
+ray.init()
+sqlConStr='DRIVER={DTS};SERVER=172.x.x.24,1433;DATABASE=mydb;UID=user;PWD=user'
+
+connexion=connect(sqlConStr)
+customerQL=''' SELECT * FROM TBL_CUSTOMER_LOOKUP '''
+
+@ray.remote
+def rayTst(n):
+	print(customerQL+str(n))
+
+@ray.remote
+def raySynchronize(customerSQL,cnx):
+	pdf=read_sql(customerSQL,cnx)
+	return pdf
+
+def pandaSynchronize(customerSQL,cnx):
+	pdf=read_sql(customerSQL,cnx)
+	return pdf
+
+
+pandasFrame=pandaSynchronize(customerQL,connexion)
+raytst=rayTst.remote(n=10)
+rayFrame=raySynchronize.remote(customerQL,connexion)
+
+
+'''
+BEHAVIOR OBSERVED
+
+Function 'rayTst' which is designed to test ray is working fine.
+Function 'pandaSynchronize' executes successfully which indicates pandas library is working.
+
+Function 'raySynchronize' is created integrating pandas library into ray but throws error
+
+'''

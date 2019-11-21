@@ -1,0 +1,42 @@
+version: "3.6"
+
+networks: 
+    csv-net:
+        name: csvprogram
+
+volumes:
+    eae_dat:
+        external: false
+        name: vol_csv_dat
+
+services:
+    csvdb:
+        image: postgres
+        container_name: csvdb
+        hostname: pgxdb
+        restart: always
+        ports:
+            - 56003:5432
+        networks: 
+            - csv-net
+        environment:
+            POSTGRES_USER: pgusr
+            POSTGRES_DB: csvdata
+            POSTGRES_PASSWORD: pgusr
+        volumes:
+            - eae_dat:/var/lib/postgresql/data
+        logging:
+            driver: none
+
+    pyx:
+        build: .
+        command: python waker.py 88888
+        container_name: k_pyx
+        hostname: host_pyx
+        image: pyx-csv-tmp
+        volumes:
+            - o:/git:/git
+        networks: 
+            - csv-net
+        depends_on:
+            - csvdb
