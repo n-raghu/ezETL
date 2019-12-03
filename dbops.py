@@ -1,5 +1,4 @@
-from psycopg2 import connect as pgconnector
-
+from dimlib import os, sys, iglob
 
 def create_mother_tables(pguri):
     cnx = pgconnector(pguri)
