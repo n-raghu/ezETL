@@ -1,5 +1,6 @@
 from dimlib import os, sys, iglob
 
+
 def create_mother_tables(pguri):
     cnx = pgconnector(pguri)
     with open('mother_tbl_schema.json', 'r') as jfile:

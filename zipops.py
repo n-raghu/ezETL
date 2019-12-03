@@ -1,3 +1,8 @@
+from dimlib import os, sys
+from dimlib import ZipFile, yml_safe_load
+from dimlib import error_trace, dimlogger
+
+
 def get_csv_structure(xfile):
     with open(xfile, 'r') as file_itr:
         head = file_itr.readline()
