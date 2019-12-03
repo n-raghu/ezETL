@@ -7,7 +7,7 @@ from dimlib import ProcessPoolExecutor, fork_complete
 from dbops import pgconnector, create_ins_tbl, create_mother_tables
 
 
-def file_to_tbl(urx, one_set, mother_schema_set):
+def zip_to_tbl(urx, one_set, mother_schema_set):
     _t = tpc()
     pgx = pgconnector(urx)
     dat_file_fmt = fmt_to_json(one_set['fmt_file'])
@@ -33,7 +33,7 @@ def heart(file_set, mother_schema_set):
     with ProcessPoolExecutor(max_workers=max_cpu_workers) as executor:
         pool_dictionary = {
             executor.submit(
-                file_to_tbl,
+                zip_to_tbl,
                 pguri,
                 one_set,
                 mother_schema_set,
