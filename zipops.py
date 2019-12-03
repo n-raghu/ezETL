@@ -1,6 +1,7 @@
+from dimlib import cfg
 from dimlib import os, sys
 from dimlib import ZipFile, yml_safe_load
-from dimlib import error_trace, dimlogger
+from dimtraces import error_trace, dimlogger
 
 
 def get_csv_structure(xfile):
