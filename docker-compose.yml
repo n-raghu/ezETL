@@ -25,6 +25,7 @@ services:
             POSTGRES_PASSWORD: pgusr
         volumes:
             - eae_dat:/var/lib/postgresql/data
+            - o:/git:/git
         logging:
             driver: none
 

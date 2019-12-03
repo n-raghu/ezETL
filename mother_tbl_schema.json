@@ -1,7 +1,0 @@
-[
-    {
-        "instancecode": "TEXT",
-        "row_timestamp": "TIMESTAMP WITHOUT TIME ZONE",
-        "user_name": "TEXT"
-    }
-]

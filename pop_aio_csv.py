@@ -10,7 +10,7 @@ from psycopg2 import connect as pgconnector
 
 from iogen import StrIOGenerator
 
-S3_PATH = 'dat/'
+S3_DIR = 'dat/'
 with open('story.yml') as cfg_obj:
     cfg = yml_safe_load(cfg_obj)
 
@@ -22,7 +22,7 @@ try:
     _pgdbo = f"{cfg['datastore']['dbn']}"
     pguri = f'postgresql://{_pgauth}@{_pghost}/{_pgdbo}'
     max_cpu_workers = cfg['max_workers']
-    S3_PATH += f'*.{dat_file_extn}'
+    S3_PATH = f'{S3_DIR}*.{dat_file_extn}'
     del _pgauth
     del _pgdbo
     del _pghost
@@ -41,16 +41,35 @@ def get_csv_structure(xfile):
 
 
 def create_stage_tbl(pgx, tbl):
-    tbl_statement = f'''
-    CREATE TABLE IF NOT EXISTS {tbl}(
-        f_stamp TIMESTAMP WITHOUT TIME ZONE,
-        f_str TEXT,
-        f_int INT,
-        f_float FLOAT,
-        f_bool BOOLEAN) '''
+    tbl_mappers = []
+    json_file = f'{S3_DIR}{tbl}.json'
+    with open(json_file, 'r') as jfile:
+        tbl_field_list = yml_safe_load(jfile)
+    print('YML FILE PARSED.')
+    for field_set in tbl_field_list:
+        if 'bit' == field_set['COL_TYPE'].lower():
+            field_set['db_col'] = 'BOOLEAN'
+        elif 'date' == field_set['COL_TYPE'].lower():
+            field_set['db_col'] = 'DATE'
+        elif 'time' == field_set['COL_TYPE'].lower():
+            field_set['db_col'] = 'TIME'
+        elif 'datetime' == field_set['COL_TYPE'].lower():
+            field_set['db_col'] = 'TIMESTAMP'
+        elif 'int' in field_set['COL_TYPE']:
+            field_set['db_col'] = 'BIGINT'
+        else:
+            field_set['db_col'] = 'TEXT'
+        field_set['TBL_COLUMN'] = field_set['TBL_COLUMN'].lower()
+        tbl_mappers.append(field_set)
+    tbl_ddl_statement = f'CREATE TABLE IF NOT EXISTS {tbl}('
+    for map_set in tbl_mappers:
+        tbl_ddl_statement += f"{map_set['TBL_COLUMN']} {map_set['db_col']},"
+    if tbl_ddl_statement.endswith(','):
+        tbl_ddl_statement = tbl_ddl_statement[:-1]
+    tbl_ddl_statement = f'{tbl_ddl_statement})'
     try:
         with pgx.cursor() as pgcur:
-            pgcur.execute(tbl_statement)
+            pgcur.execute(tbl_ddl_statement)
             pgx.commit()
         return True
     except Exception as err:
@@ -63,13 +82,18 @@ def file_to_tbl(urx, dat_file):
     dat_file_name = os.path.splitext(os.path.basename(dat_file))[0]
     create_stage_tbl(pgx, dat_file_name)
     tbl_header = get_csv_structure(dat_file)
-    pg_cp_statement = f"COPY {dat_file_name}({tbl_header}) FROM STDIN WITH CSV HEADER DELIMITER AS '{csv_sep}' "
-    with open(dat_file, 'r') as dat_obj:
-        csv_dat = StrIOGenerator(dat_obj)
-        with pgx.cursor() as pgcur:
-            pgcur.copy_expert(sql=pg_cp_statement, file=csv_dat)
-    pgx.commit()
-    pgx.close()
+    pg_cp_statement = f"COPY {dat_file_name}({tbl_header.lower()}) FROM STDIN WITH DELIMITER '{csv_sep}' CSV HEADER null 'NULL' "
+    try:
+        with open(dat_file, 'r') as dat_obj:
+            csv_dat = StrIOGenerator(dat_obj)
+            print(dat_obj)
+            with pgx.cursor() as pgcur:
+                pgcur.copy_expert(sql=pg_cp_statement, file=dat_obj,)
+        pgx.commit()
+    except Exception as err:
+        sys.exit(err)
+    finally:
+        pgx.close()
     return tpc() - _t
 
 
