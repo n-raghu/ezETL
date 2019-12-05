@@ -1,30 +1,35 @@
-from dimlib import cfg
 from dimlib import os, sys
 from dimlib import pgconnector
 from dimtraces import error_trace, dimlogger
 
 
-def create_mother_tables(pguri):
+def create_mother_tables(pguri, itr_obj_tbl_cfg):
+    job_status = True
     cnx = pgconnector(pguri)
-    with open('mother_tbl_schema.json', 'r') as jfile:
-        schema_set = yml_safe_load(jfile)
-    tbl_statements = []
-    for tbl in schema_set:
-        this_tbl_fields = ''
-        for column_name, data_type in tbl.items():
-            this_tbl_fields += f'{column_name} {data_type},'
-        if this_tbl_fields.endswith(','):
-            this_tbl_fields = this_tbl_fields[:-1]
-        tbl_statements.append(
-            f'CREATE TABLE IF NOT EXISTS user_master({this_tbl_fields})'
-        )
+    sql_statements = []
+    sql_query_prefix = 'SELECT framework.create_mother_tbl'
+    if isinstance(itr_obj_tbl_cfg, list):
+        for tbl_cfg in itr_obj_tbl_cfg:
+            app_name = tbl_cfg['app_name']
+            schema_name = tbl_cfg['schema_name']
+            tbl_name = tbl_cfg['tbl_name']
+            sql_query = f"('{app_name}', '{schema_name}', '{tbl_name}')"
+            sql_statements.append(sql_query_prefix+sql_query)
+    elif isinstance(itr_obj_tbl_cfg, dict):
+        tbl_cfg = itr_obj_tbl_cfg
+        app_name = tbl_cfg['app_name']
+        schema_name = tbl_cfg['schema_name']
+        tbl_name = tbl_cfg['tbl_name']
+        sql_query = f'({app_name}, {schema_name}, {tbl_name})'
+        sql_statements.append(sql_query_prefix+sql_query)
+    else:
+        sys.exit('Invalid arguments provided.')
     with cnx.cursor() as pgcur:
-        for stmt in tbl_statements:
+        for stmt in sql_statements:
             pgcur.execute(stmt)
-    cnx.commit()
-    del tbl_statements
+        cnx.commit()
     cnx.close()
-    return schema_set
+    return job_status
 
 
 def create_ins_tbl(
@@ -32,7 +37,7 @@ def create_ins_tbl(
     mother_tbl,
     ins_tbl,
     mother_tbl_structure,
-    ins_tbl_structure
+    ins_tbl_structure,
 ):
     tbl_columns = ''
     ins_only_columns = set(ins_tbl_structure) - set(mother_tbl_structure)

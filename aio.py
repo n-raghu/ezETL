@@ -1,6 +1,7 @@
-from dimlib import cfg
+from dimlib import refresh_config, gen_dburi
 from dimlib import os, sys
 from iogen import StrIOGenerator
+from zipops import build_file_set
 from dimlib import file_path_splitter
 from dimtraces import error_trace, dimlogger
 from dimlib import ProcessPoolExecutor, fork_complete
@@ -29,7 +30,7 @@ def zip_to_tbl(urx, one_set, mother_schema_set):
     return tpc() - _t
 
 
-def heart(file_set, mother_schema_set):
+def aio_launchpad(file_set, mother_schema_set):
     with ProcessPoolExecutor(max_workers=max_cpu_workers) as executor:
         pool_dictionary = {
             executor.submit(
@@ -46,7 +47,10 @@ def heart(file_set, mother_schema_set):
 
 if __name__ == '__main__':
     t1 = tpc()
+    cfg = refresh_config()
+    dburi = gen_dburi(cfg['datastore'])
+    archive_path = 
+    storage_set = build_file_set(S3_PATH)
     dv_schema = create_mother_tables(pguri)
-    storage_set = get_file_set(S3_PATH)
-    heart(storage_set, dv_schema)
+    aio_launchpad(storage_set, dv_schema)
     print(f'Total Time Taken: {tpc() - t1}')
