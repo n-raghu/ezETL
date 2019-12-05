@@ -32,22 +32,36 @@ def create_mother_tables(pguri, itr_obj_tbl_cfg):
     return job_status
 
 
+def get_mother_tbl_columns(pgx, mother_tbl):
+    sql_query = f'''SELECT fld_name
+    FROM framework.mother_tbl_schema
+    WHERE active=true AND collection_name='{mother_tbl}' '''
+    with pgx.cursor() as pgcur:
+        pgcur.execute(sql_query)
+        base_columns = pgcur.fetchall()
+    return {
+        _[0] for _ in base_columns
+    }
+
+
 def create_ins_tbl(
     pgx,
     mother_tbl,
     ins_tbl,
-    mother_tbl_structure,
-    ins_tbl_structure,
+    db_schema,
+    ins_tbl_map,
 ):
     tbl_columns = ''
-    ins_only_columns = set(ins_tbl_structure) - set(mother_tbl_structure)
+    mother_tbl_structure = {}
+    mother_tbl_list = get_mother_tbl_columns(pgx, mother_tbl)
+    ins_only_columns = set(ins_tbl_map) - set(mother_tbl_list)
     for fld in ins_only_columns:
-        tbl_columns += f'{fld} {ins_tbl_structure[fld]},'
+        tbl_columns += f'{fld} {ins_tbl_map[fld]},'
     if tbl_columns.endswith(','):
         tbl_columns = tbl_columns[:-1]
-    tbl_statement = f''' CREATE TABLE IF NOT EXISTS {ins_tbl}(
+    tbl_statement = f''' CREATE TABLE IF NOT EXISTS {db_schema}.{ins_tbl}(
         {tbl_columns}
-        ) INHERITS ({mother_tbl});'''
+        ) INHERITS ({db_schema}.{mother_tbl});'''
     try:
         with pgx.cursor() as pgcur:
             pgcur.execute(tbl_statement)

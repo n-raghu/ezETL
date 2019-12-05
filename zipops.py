@@ -4,15 +4,32 @@ from dimlib import file_path_splitter
 from dimtraces import error_trace, dimlogger
 
 
-def get_csv_structure(xfile):
-    with open(xfile, 'r') as file_itr:
-        head = file_itr.readline()
-    return ','.join(head.split('|'))
+def get_csv_structure(zipset, datfile):
+    with ZipFile(zipset, 'r') as zet:
+        with zet.open(datfile, 'r') as dfile:
+            head = dfile.readline()
+    header_line = head.decode()
+    return ','.join(header_line.lower().split('|'))
 
 
-def fmt_to_json(jsonfile):
-    with open(jsonfile, 'r') as jfile:
-        return yml_safe_load(jfile)
+def fmt_to_json(zipset, jsonfile):
+    pyjson = {}
+    with ZipFile(zipset, 'r') as zet:
+        with zet.open(jsonfile, 'r') as jfile:
+            jsonb = jfile.read()
+    bad_chars = ['\r', '\t', '\n']
+    if isinstance(jsonb, bytes):
+        try:
+            json_txt = jsonb.decode()
+            del jsonb
+        except Exception as err:
+            sys.exit('Unable to parse JSON file')
+    for _char in bad_chars:
+        json_txt = json_txt.replace(_char, '')
+    raw_json = yml_safe_load(json_txt.lower())
+    for _r in raw_json:
+        pyjson[_r['column_name']] = _r['column_type']
+    return pyjson
 
 
 def build_file_set(all_cfg):

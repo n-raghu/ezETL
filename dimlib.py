@@ -21,7 +21,7 @@ def refresh_config():
         _pgdbo = f"{raw_cfg['datastore']['dbn']}"
         cfg = {
             'dburi': f'postgresql://{_pgauth}@{_pghost}/{_pgdbo}',
-            'max_workers': raw_cfg['max_workers'],
+            'cpu_workers': raw_cfg['max_workers'],
             'db_schema': raw_cfg['db_schema'],
             'xport_cfg': raw_cfg['xport_cfg'],
         }
