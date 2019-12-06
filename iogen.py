@@ -1,10 +1,10 @@
-from io import TextIOBase
+from io import TextIOBase, TextIOWrapper
 from typing import Iterator, Optional
 
 
 class StrIOGenerator(TextIOBase):
     def __init__(self, iter: Iterator[str]):
-        self._iter = iter
+        self._iter = TextIOWrapper(iter)
         self._buff = ''
 
     def readable(self) -> bool:

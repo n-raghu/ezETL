@@ -1,3 +1,4 @@
 *.db8io
 *.8io
 *.json
+dat/

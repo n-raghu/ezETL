@@ -7,7 +7,7 @@ from dbops import create_ins_tbl, create_mother_tables
 from dimlib import ProcessPoolExecutor, fork_complete
 
 
-def zip_to_tbl(csv_sep, urx, one_set, ):
+def zip_to_tbl(csv_sep, db_schema, urx, one_set, ):
     pgx = pgconnector(urx)
     tbl_json = fmt_to_json(
         one_set['dataset'],
@@ -17,26 +17,37 @@ def zip_to_tbl(csv_sep, urx, one_set, ):
         pgx,
         mother_tbl=one_set['mother_tbl'],
         ins_tbl=one_set['ins_tbl'],
-        db_schema='stage',
+        db_schema=db_schema,
         ins_tbl_map=tbl_json,
     )
     tbl_header = get_csv_structure(
         one_set['dataset'],
         one_set['dat_file'],
     )
-    pg_cp_statement = f"COPY {one_set['ins_tbl']}({tbl_header}) FROM STDIN WITH CSV HEADER DELIMITER AS '{csv_sep}' "
+    pg_cp_statement = f"COPY stage.{one_set['ins_tbl']}({tbl_header}) FROM STDIN WITH CSV HEADER DELIMITER AS '{csv_sep}' "
     with ZipFile(one_set['dataset'], 'r') as zfile:
         with zfile.open(one_set['dat_file'], 'r') as dat_obj:
-            csv_dat = dat_obj.read()
-    return csv_dat
+            csv_dat = StrIOGenerator(dat_obj)
+            with pgx.cursor() as pgcur:
+                pgcur.copy_expert(sql=pg_cp_statement, file=csv_dat)
+    pgx.commit()
+    pgx.close()
+    return f"{one_set['ins_tbl']} - {one_set['dataset']}"
 
 
-def aio_launchpad(csv_sep, cpu_workers, dburi, file_set):
-    with ProcessPoolExecutor() as executor:
+def aio_launchpad(
+    csv_sep,
+    cpu_workers,
+    dburi,
+    db_schema,
+    file_set
+):
+    with ProcessPoolExecutor(max_workers=cpu_workers) as executor:
         pool_dictionary = {
             executor.submit(
                 zip_to_tbl,
                 csv_sep,
+                db_schema,
                 dburi,
                 one_set,
             ): one_set for one_set in file_set
@@ -59,6 +70,7 @@ if __name__ == '__main__':
     aio_launchpad(
         csv_sep=cfg['xport_cfg']['field_separator'],
         cpu_workers=cfg['cpu_workers'],
+        db_schema=cfg['db_schema'],
         dburi=cfg['dburi'],
         file_set=storage_set,
     )
