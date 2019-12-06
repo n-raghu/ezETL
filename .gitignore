@@ -2,3 +2,5 @@
 *.8io
 *.json
 dat/
+dat_copy/
+__pycache__/
