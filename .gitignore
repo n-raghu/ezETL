@@ -1,6 +1,5 @@
 *.db8io
 *.8io
 *.json
-dat/
-dat_copy/
+worker/
 __pycache__/
