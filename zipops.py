@@ -1,7 +1,15 @@
 from dimlib import os, sys, odict, iglob, ZipFile
 from dimlib import yml_safe_load
 from dimlib import file_path_splitter
-from dimtraces import error_trace, dimlogger
+
+
+def reporting_dtypes():
+    with open('dtype.json', 'r') as djson:
+        json_txt = djson.read()
+    bad_chars = ['\r', '\t', '\n']
+    for _char in bad_chars:
+        json_txt = json_txt.replace(_char, '')
+    return yml_safe_load(json_txt.lower())
 
 
 def get_csv_structure(zipset, datfile):
@@ -12,7 +20,13 @@ def get_csv_structure(zipset, datfile):
     return ','.join(header_line.lower().split('|'))
 
 
-def fmt_to_json(zipset, jsonfile):
+def fmt_to_json(
+    zipset,
+    jsonfile,
+    dtdct,
+    col_name='tbl_column',
+    col_type='col_type',
+):
     pyjson = {}
     with ZipFile(zipset, 'r') as zet:
         with zet.open(jsonfile, 'r') as jfile:
@@ -24,11 +38,16 @@ def fmt_to_json(zipset, jsonfile):
             del jsonb
         except Exception as err:
             sys.exit('Unable to parse JSON file')
+    else:
+        sys.exit('Unrecognized JSON format')
     for _char in bad_chars:
         json_txt = json_txt.replace(_char, '')
     raw_json = yml_safe_load(json_txt.lower())
     for _r in raw_json:
-        pyjson[_r['column_name']] = _r['column_type']
+        if _r[col_type] in dtdct:
+            pyjson[_r[col_name]] = dtdct[_r[col_type]]
+        else:
+            pyjson[_r[col_name]] = _r[col_type]
     return pyjson
 
 

@@ -7,10 +7,10 @@ datastore:
     dbn: csvdata
 xport_cfg:
     fmt_extension: json
-    dat_extension: db8io
+    dat_extension: txt
     field_separator: '|'
     archive_extension: zip
-    archive_path: 'dat/zipin/'
+    archive_path: 'worker/_io/'
     dat_quoted: false
     archive_encryption: false
 db_schema: stage

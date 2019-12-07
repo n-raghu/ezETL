@@ -24,10 +24,10 @@ def zip_to_tbl(csv_sep, db_schema, urx, one_set, ):
         one_set['dataset'],
         one_set['dat_file'],
     )
-    pg_cp_statement = f"COPY stage.{one_set['ins_tbl']}({tbl_header}) FROM STDIN WITH CSV HEADER DELIMITER AS '{csv_sep}' "
+    pg_cp_statement = f"COPY stage.{one_set['ins_tbl']}({tbl_header}) FROM STDIN WITH DELIMITER '{csv_sep}' CSV HEADER NULL 'NULL' QUOTE '`' "
     with ZipFile(one_set['dataset'], 'r') as zfile:
         with zfile.open(one_set['dat_file'], 'r') as dat_obj:
-            csv_dat = StrIOGenerator(dat_obj)
+            csv_dat = StrIOGenerator(dat_obj, 'cp1252')
             with pgx.cursor() as pgcur:
                 pgcur.copy_expert(sql=pg_cp_statement, file=csv_dat)
     pgx.commit()

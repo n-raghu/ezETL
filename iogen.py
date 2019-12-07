@@ -3,8 +3,8 @@ from typing import Iterator, Optional
 
 
 class StrIOGenerator(TextIOBase):
-    def __init__(self, iter: Iterator[str]):
-        self._iter = TextIOWrapper(iter)
+    def __init__(self, iter: Iterator[str], text_enc):
+        self._iter = TextIOWrapper(iter, encoding=text_enc)
         self._buff = ''
 
     def readable(self) -> bool:
