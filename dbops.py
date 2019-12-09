@@ -62,11 +62,11 @@ def create_ins_tbl(
     tbl_statement = f''' CREATE TABLE IF NOT EXISTS {db_schema}.{ins_tbl}(
         {tbl_columns}
         ) INHERITS ({db_schema}.{mother_tbl});'''
-    print(tbl_statement)
     try:
         with pgx.cursor() as pgcur:
             pgcur.execute(tbl_statement)
             pgx.commit()
         return True
     except Exception as err:
+        print(err)
         return err

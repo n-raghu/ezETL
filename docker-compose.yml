@@ -31,10 +31,12 @@ services:
 
     pyx:
         build: .
-        command: python waker.py 88888
+        command: sh service.sh
         container_name: k_pyx
         hostname: host_pyx
-        image: pyx-csv-tmp
+        image: pyx-csv
+        ports:
+            - 8080:8080
         volumes:
             - o:/git:/git
         networks: 

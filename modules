@@ -1,2 +1,5 @@
 pyyaml
+numpy
 psycopg2-binary
+cryptography
+apache-airflow[async,postgres,s3,ssh,crypto]

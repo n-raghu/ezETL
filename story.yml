@@ -1,4 +1,4 @@
-max_workers: 5
+max_workers: 3
 datastore:
     host: csvdb
     port: 5432
