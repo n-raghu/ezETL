@@ -1,8 +1,9 @@
 from dimlib import os, sys
 from dimlib import pgconnector
-from dimtraces import error_trace, dimlogger
+from dimtraces import timetracer, bugtracer
 
 
+@timetracer
 def create_mother_tables(pguri, itr_obj_tbl_cfg):
     job_status = True
     cnx = pgconnector(pguri)

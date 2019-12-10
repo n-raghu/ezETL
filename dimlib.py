@@ -2,7 +2,6 @@ import os
 import sys
 from glob import iglob
 from zipfile import ZipFile
-from time import perf_counter as tpc
 from collections import OrderedDict as odict
 
 from yaml import safe_load as yml_safe_load

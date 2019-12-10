@@ -12,7 +12,6 @@ from zipops import build_file_set, fmt_to_json, get_csv_structure
 
 
 def zip_to_tbl(csv_sep, db_schema, urx, dtypes, one_set, ):
-    print(f"Started at {dtm.now()} - {one_set['ins_tbl']} - {one_set['dataset']}")
     pgx = pgconnector(urx)
     tbl_json = fmt_to_json(
         zipset=one_set['dataset'],
@@ -78,21 +77,26 @@ def aio_launchpad(
 
 
 if __name__ == '__main__':
-    cfg = refresh_config()
-    dtypes_dict = reporting_dtypes()
-    db_schema = cfg['db_schema']
-    storage_set = build_file_set(cfg)
-    mother_tbl_list = list(
-        {
-            _['mother_tbl'] for _ in storage_set
-        }
-    )
-    create_mother_tables(cfg['dburi'], storage_set)
-    aio_launchpad(
-        csv_sep=cfg['xport_cfg']['field_separator'],
-        cpu_workers=cfg['cpu_workers'],
-        db_schema=cfg['db_schema'],
-        dburi=cfg['dburi'],
-        dtypes=dtypes_dict,
-        file_set=storage_set,
-    )
+    pid = int(dtm.timestamp(dtm.utcnow()))
+    try:
+        cfg = refresh_config()
+        dtypes_dict = reporting_dtypes()
+        db_schema = cfg['db_schema']
+        storage_set = build_file_set(cfg)
+        mother_tbl_list = list(
+            {
+                _['mother_tbl'] for _ in storage_set
+            }
+        )
+        create_mother_tables(cfg['dburi'], storage_set)
+        aio_launchpad(
+            csv_sep=cfg['xport_cfg']['field_separator'],
+            cpu_workers=cfg['cpu_workers'],
+            db_schema=cfg['db_schema'],
+            dburi=cfg['dburi'],
+            dtypes=dtypes_dict,
+            file_set=storage_set,
+        )
+    except Exception as err:
+        with open(pid, 'w') as pid_file:
+            pid_file.write(err)

@@ -1,10 +1,12 @@
 from dimlib import os, sys, odict, iglob, ZipFile
 from dimlib import yml_safe_load
 from dimlib import file_path_splitter
+from dimtraces import bugtracer, timetracer
 
 
 def reporting_dtypes():
-    with open('dtype.json', 'r') as djson:
+    dtypefile = 'dtype.json'
+    with open(dtypefile, 'r') as djson:
         json_txt = djson.read()
     bad_chars = ['\r', '\t', '\n']
     for _char in bad_chars:
