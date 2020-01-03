@@ -9,8 +9,11 @@ xport_cfg:
     fmt_extension: json
     dat_extension: txt
     field_separator: '|'
-    archive_extension: zip
-    archive_path: 'worker/_io/'
-    dat_quoted: false
-    archive_encryption: false
+    worker_xtn: io
+    en_zip_path: worker/_io/
+    en_key_passcode: SFASFASFA
+    archive_path: worker/archive
+    dat_quote: '`'
+    null_pattern: 'NULL'
+    key_file: worker/_io/24DCCFCAA2DC0B2FB7BB35DBB1A768A71FAC7066.asc
 db_schema: stage

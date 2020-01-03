@@ -5,13 +5,19 @@ from dimtraces import bugtracer, timetracer
 
 
 def reporting_dtypes():
-    dtypefile = 'dtype.json'
-    with open(dtypefile, 'r') as djson:
-        json_txt = djson.read()
-    bad_chars = ['\r', '\t', '\n']
-    for _char in bad_chars:
-        json_txt = json_txt.replace(_char, '')
-    return yml_safe_load(json_txt.lower())
+    dtypefiles = {
+        'mssql': 'dtype_mssql.json',
+        'mysql': 'dtype_mysql.json',
+    }
+    dtypes = odict()
+    for _db, _dfile in dtypefiles.items():
+        with open(_dfile, 'r') as djson:
+            json_txt = djson.read()
+        bad_chars = ['\r', '\t', '\n']
+        for _char in bad_chars:
+            json_txt = json_txt.replace(_char, '')
+        dtypes[_db] = yml_safe_load(json_txt.lower())
+    return dtypes
 
 
 def get_csv_structure(zipset, datfile):
@@ -19,6 +25,9 @@ def get_csv_structure(zipset, datfile):
         with zet.open(datfile, 'r') as dfile:
             head = dfile.readline()
     header_line = head.decode()
+    bad_chars = ['\r', '\t', '\n']
+    for _char in bad_chars:
+        header_line = header_line.replace(_char, '')
     return ','.join(header_line.lower().split('|'))
 
 
@@ -30,6 +39,10 @@ def fmt_to_json(
     col_type='col_type',
 ):
     pyjson = {}
+    if 'lms' in zipset:
+        dct = dtdct['mssql']
+    else:
+        dct = dtdct['mysql']
     with ZipFile(zipset, 'r') as zet:
         with zet.open(jsonfile, 'r') as jfile:
             jsonb = jfile.read()
@@ -46,19 +59,19 @@ def fmt_to_json(
         json_txt = json_txt.replace(_char, '')
     raw_json = yml_safe_load(json_txt.lower())
     for _r in raw_json:
-        if _r[col_type] in dtdct:
-            pyjson[_r[col_name]] = dtdct[_r[col_type]]
+        if _r[col_type] in dct:
+            pyjson[_r[col_name]] = dct[_r[col_type]]
         else:
             pyjson[_r[col_name]] = _r[col_type]
-    return pyjson
+    return {k: v for k, v in pyjson.items() if v not in ['binary']}
 
 
 def build_file_set(all_cfg):
     xport_cfg = all_cfg['xport_cfg']
     db_schema = all_cfg['db_schema']
     del all_cfg
-    file_path = xport_cfg['archive_path']
-    zip_xtn = xport_cfg['archive_extension']
+    file_path = xport_cfg['en_zip_path']
+    zip_xtn = xport_cfg['worker_xtn']
     fmt_xtn = xport_cfg['fmt_extension']
     dat_xtn = xport_cfg['dat_extension']
     zip_set = odict()

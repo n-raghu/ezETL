@@ -2,10 +2,12 @@ import os
 import sys
 from glob import iglob
 from zipfile import ZipFile
+from time import process_time as tpt
 from collections import OrderedDict as odict
 
 from yaml import safe_load as yml_safe_load
 from psycopg2 import connect as pgconnector
+from gnupg import GPG
 
 
 def refresh_config():
@@ -36,3 +38,54 @@ def file_path_splitter(dat_file_with_path, file_path):
         return dat_file_with_path[index + len(file_path):]
     else:
         return None
+
+
+def file_decrypter_buff(
+    enc_file,
+    passcode,
+    gpg_ins,
+    unzip_path='_buff',
+    zip_xtn='io',
+):
+    _file_pattern = enc_file.split('/')
+    _len = len(_file_pattern) - 1
+    _file = _file_pattern[_len]
+    buff_path = ''
+    for _ in range(_len):
+        buff_path = f'{buff_path}{_file_pattern[_]}/'
+    buff_path += unzip_path
+    _file_pattern = _file.split('.')
+    file_name = _file_pattern[0]
+    zip_file = f'{buff_path}/{file_name}.{zip_xtn}'
+    print(zip_file)
+    with open(enc_file, 'rb') as efile:
+        _ins = gpg_ins.decrypt_file(
+            efile,
+            passphrase=passcode,
+            output=zip_file,
+        )
+    return _ins
+
+
+def file_decrypter(
+    enc_file,
+    passcode,
+    gpg_ins,
+    zip_xtn='io',
+):
+    _file_pattern = enc_file.split('/')
+    _len = len(_file_pattern) - 1
+    _file = _file_pattern[_len]
+    buff_path = '/'.join(_file_pattern[:_len])
+    print(buff_path)
+    _file_pattern = _file.split('.')
+    file_name = _file_pattern[0]
+    zip_file = f'{buff_path}/{file_name}.{zip_xtn}'
+    print(zip_file)
+    with open(enc_file, 'rb') as efile:
+        _ins = gpg_ins.decrypt_file(
+            efile,
+            passphrase=passcode,
+            output=zip_file,
+        )
+    return _ins

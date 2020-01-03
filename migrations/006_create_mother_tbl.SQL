@@ -7,8 +7,8 @@ $$
     BEGIN
         SELECT string_agg(result,',') as q INTO cols_with_type FROM(
         SELECT array_to_string(ARRAY[fld_name ,fld_type], ' ')  AS result
-        FROM framework.mother_tbl_schema
-        WHERE active=true AND collection_name=tbl_name AND app=app_code
+        FROM framework.collectionmaps
+        WHERE active=true AND collection_name=tbl_name AND src_app=app_code
         )A;
         qry = CONCAT(qry, db_schema, '.', tbl_name, '(', cols_with_type, ')');
         EXECUTE qry;

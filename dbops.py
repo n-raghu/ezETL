@@ -35,7 +35,7 @@ def create_mother_tables(pguri, itr_obj_tbl_cfg):
 
 def get_mother_tbl_columns(pgx, mother_tbl):
     sql_query = f'''SELECT fld_name
-    FROM framework.mother_tbl_schema
+    FROM framework.collectionmaps
     WHERE active=true AND collection_name='{mother_tbl}' '''
     with pgx.cursor() as pgcur:
         pgcur.execute(sql_query)
@@ -69,5 +69,62 @@ def create_ins_tbl(
             pgx.commit()
         return True
     except Exception as err:
-        print(err)
+        print(f'CREATE-INS-TBL-ERR: {err}')
         return err
+
+
+def collectiontracker(
+    dburi,
+    pid,
+    storageset,
+):
+    try:
+        cnx = pgconnector(dburi)
+        insert_qry = '''INSERT INTO framework.tracker_collections(
+            pid,
+            ingest_success,
+            instancecode,
+            zip_set,
+            mother_collection,
+            instance_collection,
+            src_app)'''
+        select_qry = ' '
+        for _set in storageset:
+            select_qry += f'''SELECT {pid},
+            false,
+            '{_set['icode']}',
+            '{_set['dataset']}',
+            '{_set['mother_tbl']}',
+            '{_set['ins_tbl']}',
+            '{_set['app_name']}' UNION ALL '''
+        select_qry = select_qry.strip()
+        if select_qry.endswith('UNION ALL'):
+            select_qry = select_qry[:-9]
+        sql_qry = insert_qry + select_qry
+        with cnx.cursor() as dbcur:
+            dbcur.execute(sql_qry)
+        cnx.commit()
+        return True
+    except Exception as err:
+        sys.exit(err)
+        return False
+    finally:
+        cnx.close()
+
+
+def record_job_success(
+    cnx,
+    pid,
+    ins_tbl,
+    start_time,
+    end_time,
+):
+    try:
+        sql_qry = f'''UPDATE framework.tracker_collections
+        SET ingest_success=true,start_time='{start_time}',end_time='{end_time}'
+        WHERE pid={pid} AND instance_collection='{ins_tbl}';'''
+        with cnx.cursor() as dbcur:
+            dbcur.execute(sql_qry)
+        cnx.commit()
+    except Exception as err:
+        print(f'Recording Error:{err}')

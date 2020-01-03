@@ -25,16 +25,16 @@ services:
             POSTGRES_PASSWORD: pgusr
         volumes:
             - eae_dat:/var/lib/postgresql/data
-            - o:/git:/git
+            - o:/git/:/git
         logging:
             driver: none
 
     pyx:
         build: .
-        command: sh service.sh
+        command: python waker.py 696969
         container_name: k_pyx
         hostname: host_pyx
-        image: pyx-csv
+        image: eae-csv-aio
         ports:
             - 8080:8080
         volumes:
