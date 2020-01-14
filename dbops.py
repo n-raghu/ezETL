@@ -90,10 +90,12 @@ def collectiontracker(
             src_app)'''
         select_qry = ' '
         for _set in storageset:
+            zipset = str(_set['dataset']).split('.')
+            zipset = f'{zipset[0]}.zip.gpg'
             select_qry += f'''SELECT {pid},
             false,
             '{_set['icode']}',
-            '{_set['dataset']}',
+            '{zipset}',
             '{_set['mother_tbl']}',
             '{_set['ins_tbl']}',
             '{_set['app_name']}' UNION ALL '''

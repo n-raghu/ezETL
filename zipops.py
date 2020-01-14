@@ -35,7 +35,7 @@ def fmt_to_json(
     zipset,
     jsonfile,
     dtdct,
-    col_name='tbl_column',
+    col_name='tbl_col',
     col_type='col_type',
 ):
     pyjson = {}
@@ -118,18 +118,40 @@ def build_file_set(all_cfg):
                 _app_tbl_name = os.path.splitext(
                     os.path.basename(_file)
                 )[0]
-                file_set.append(
-                    {
-                        'icode': icode,
-                        'dataset': zipset['dataset'],
-                        'dat_file': f'{_app_tbl_name}.{dat_xtn}',
-                        'fmt_file': f'{_app_tbl_name}.{fmt_xtn}',
-                        'mother_tbl': _app_tbl_name,
-                        'tbl_name': _app_tbl_name,
-                        'ins_tbl': f'{icode}_{_app_tbl_name}',
-                        'stampid': zipset['stampid'],
-                        'app_name': zipset['app_code'],
-                        'schema_name': db_schema
-                    }
-                )
+                dt_ingest_info = {
+                    'icode': icode,
+                    'dataset': zipset['dataset'],
+                    'dat_file': f'{_app_tbl_name}.{dat_xtn}',
+                    'fmt_file': f'{_app_tbl_name}.{fmt_xtn}',
+                    'mother_tbl': _app_tbl_name,
+                    'tbl_name': _app_tbl_name,
+                    'ins_tbl': f'{icode}_{_app_tbl_name}',
+                    'stampid': zipset['stampid'],
+                    'app_name': zipset['app_code'],
+                    'schema_name': db_schema,
+                }
+                file_set.append(dt_ingest_info.copy())
+                dt_ingest_info['dat_file'] = f'{_app_tbl_name}_pki.{dat_xtn}'
+                dt_ingest_info['ins_tbl'] = f'{icode}_{_app_tbl_name}_pki'
+                file_set.append(dt_ingest_info.copy())
+                del dt_ingest_info
     return file_set
+
+
+def purge_worker_files(all_cfg):
+    xport_cfg = all_cfg['xport_cfg']
+    del all_cfg
+    file_path = xport_cfg['en_zip_path']
+    zip_xtn = xport_cfg['worker_xtn']
+    all_zip_files = list(
+        iglob(
+            f'{file_path}**/*.{zip_xtn}',
+            recursive=True
+        )
+    )
+    for fname in all_zip_files:
+        try:
+            os.remove(fname)
+        except Exception as err:
+            print(f'Worker file - {fname}, cleanup error')
+    return None

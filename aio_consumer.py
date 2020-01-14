@@ -11,12 +11,11 @@ from dimlib import refresh_config, pgconnector, GPG
 from zipops import fmt_to_json, reporting_dtypes
 from dbops import create_ins_tbl, create_mother_tables
 from dbops import collectiontracker, record_job_success
-from zipops import build_file_set, get_csv_structure
+from zipops import build_file_set, get_csv_structure, purge_worker_files
 
 
 def zip_to_tbl(
     csv_sep,
-    null_pattern,
     quote_pattern,
     db_schema,
     urx,
@@ -38,12 +37,17 @@ def zip_to_tbl(
         ins_tbl_map=tbl_json,
     )
     if not ins_tbl_status:
+        print('INS Table failed')
         sys.exit(1)
     tbl_header = get_csv_structure(
         one_set['dataset'],
         one_set['dat_file'],
     )
-    pg_cp_statement = f"COPY stage.{one_set['ins_tbl']}({tbl_header}) FROM STDIN WITH DELIMITER '{csv_sep}' CSV HEADER NULL '{null_pattern}' QUOTE '{quote_pattern}' "
+    if 'lms' in zipset:
+        null_pattern = 'null'
+    else:
+        null_pattern = '\N'
+    pg_cp_statement = f"COPY stage.{one_set['ins_tbl']}({tbl_header}) FROM STDIN WITH DELIMITER '{csv_sep}' CSV HEADER NULL '{null_pattern}' QUOTE '{quote_pattern}' ESCAPE '\\' "
     try:
         with ZipFile(one_set['dataset'], 'r') as zfile:
             with zfile.open(one_set['dat_file'], 'r') as dat_obj:
@@ -63,8 +67,8 @@ def zip_to_tbl(
             end_time=finish_time,
         )
     except Exception as err:
-        sys.exit(err)
-    return f"Finished at {dtm.now()} - {one_set['ins_tbl']} - {one_set['dataset']}"
+        print(err)
+    return f"Finished at {dtm.now()} - {one_set['ins_tbl']}"
 
 
 def aio_decrypter(key_file, key_passcode, en_file_set):
@@ -88,7 +92,6 @@ def aio_decrypter(key_file, key_passcode, en_file_set):
 
 def aio_launchpad(
     csv_sep,
-    null_pattern,
     quote_pattern,
     cpu_workers,
     dburi,
@@ -101,7 +104,6 @@ def aio_launchpad(
             executor.submit(
                 zip_to_tbl,
                 csv_sep,
-                null_pattern,
                 quote_pattern,
                 db_schema,
                 dburi,
@@ -145,7 +147,6 @@ if __name__ == '__main__':
         t1 = ttime()
         aio_launchpad(
             csv_sep=cfg['xport_cfg']['field_separator'],
-            null_pattern=cfg['xport_cfg']['null_pattern'],
             quote_pattern=cfg['xport_cfg']['dat_quote'],
             cpu_workers=cfg['cpu_workers'],
             db_schema=cfg['db_schema'],
@@ -154,6 +155,7 @@ if __name__ == '__main__':
             file_set=storage_set,
         )
         print(f'Time Elapsed: {ttime() - t1}')
+        purge_worker_files(cfg)
     except Exception as err:
         with open(str(pid), 'w') as pid_file:
             pid_file.write(str(err))

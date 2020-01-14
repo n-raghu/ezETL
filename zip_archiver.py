@@ -12,7 +12,7 @@ from dimlib import refresh_config, pgconnector
 '''
 
 cfg = refresh_config()
-archive_path = cfg['archive_path']
+archive_path = cfg['xport_cfg']['archive_path']
 dburi = cfg['dburi']
 try:
     cnx = pgconnector(dburi)
@@ -20,19 +20,19 @@ except Exception as err:
     sys.exit(f'Unable to open connection: {err}')
 
 with cnx.cursor() as dbcur:
-    sql_qry = 'SELECT MAX(PID) AS maxpid FROM framework.tracker_jobs'
+    sql_qry = 'SELECT MAX(PID) AS maxpid FROM framework.tracker_collections'
     try:
         dbcur.execute(sql_qry)
         sql_dat = dbcur.fetchall()
     except Exception as err:
         sys.exit(f'Error fetching pid: {err}')
 
-pid = list(sql_dat)[0]
+pid = sql_dat[0][0]
 print(sql_dat)
 print(pid)
 if pid < 10000:
     sys.exit('Not eligible to archive')
-
+sys.exit()
 with cnx.cursor() as dbcur:
     sql_qry = f'''SELECT zipset FROM framework.tracker_collections
         where pid = {pid}'''

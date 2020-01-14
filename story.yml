@@ -14,6 +14,5 @@ xport_cfg:
     en_key_passcode: SFASFASFA
     archive_path: worker/archive
     dat_quote: '`'
-    null_pattern: 'NULL'
     key_file: worker/_io/24DCCFCAA2DC0B2FB7BB35DBB1A768A71FAC7066.asc
 db_schema: stage
