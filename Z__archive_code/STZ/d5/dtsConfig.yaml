@@ -1,9 +1,0 @@
-eae:
-    host: 127.0.0.1
-    port: 14217
-    user:
-    passwd:
-    db: great
-    auth: False
-other:
-    sendemail: no
