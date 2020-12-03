@@ -23,8 +23,6 @@ def refresh_config():
             'dburi': f'postgresql://{_pgauth}@{_pghost}/{_pgdbo}',
             'cpu_workers': raw_cfg['max_workers'],
             'xport_cfg': raw_cfg['xport_cfg'],
-            'path_zip_dat': path_zip_dat,
-            'path_zip_archive': path_zip_archive,
         }
     except Exception as err:
         sys.exit(f'dimlib|import-config-err|{err}')

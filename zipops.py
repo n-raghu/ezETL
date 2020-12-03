@@ -1,8 +1,12 @@
+import os
+import sys
 import json
-from dimlib import os, sys, odict, iglob, ZipFile
+from glob import iglob
+from zipfile import ZipFile
+from collections import OrderedDict as odict
+
 from dimlib import yml_safe_load
 from dimlib import file_path_splitter
-from dimtraces import bugtracer, timetracer
 
 
 def reporting_dtypes():
@@ -51,11 +55,7 @@ def fmt_to_json(
             jsonb = jfile.read()
     bad_chars = ['\r', '\t', '\n']
     if isinstance(jsonb, bytes):
-        try:
-            json_txt = jsonb.decode()
-            del jsonb
-        except Exception as err:
-            sys.exit(f'zipops|Unable to parse JSON file|{err}')
+        json_txt = jsonb.decode()
     else:
         sys.exit('Unrecognized JSON format')
     for _char in bad_chars:
@@ -113,7 +113,7 @@ def build_file_set(
             continue
 
         dt_ingest_info = {
-            'icode': icode,
+            'version': icode,
             'dataset': worker_file,
             'dat_file': f'{_app_tbl_name}.{dat_xtn}',
             'fmt_file': f'{_app_tbl_name}.{fmt_xtn}',
@@ -121,83 +121,10 @@ def build_file_set(
             'tbl_name': _app_tbl_name,
             'ins_tbl': f'{icode}_{_app_tbl_name}',
             'stampid': file_stamp,
-            'app_name': app_code,
-            'schema_name': db_schema,
-            'build_ins_tbl': True,
-            'pki_tbl': False,
-            'build_cache_tbl': False,
         }
 
         if _app_tbl_name in dat_enabled_set:
             file_set.append(dt_ingest_info.copy())
 
-        if xport_cfg['ingest_pki'] and _app_tbl_name in pki_enabled_set:
-            dt_ingest_info['dat_file'] = f'{_app_tbl_name}_pki.{dat_xtn}'
-            dt_ingest_info['mother_tbl'] = f'{_app_tbl_name}_pki'
-            dt_ingest_info['ins_tbl'] = f'{icode}_{_app_tbl_name}_pki'
-            dt_ingest_info['pki_tbl'] = True
-            dt_ingest_info['build_cache_tbl'] = create_cache_tbl
-            file_set.append(dt_ingest_info.copy())
         del dt_ingest_info
     return file_set
-
-
-def purge_worker_files(all_cfg):
-    xport_cfg = all_cfg['xport_cfg']
-    del all_cfg
-    file_path = xport_cfg['en_zip_path']
-    zip_xtn = xport_cfg['worker_xtn']
-    all_zip_files = list(
-        iglob(
-            f'{file_path}**/*.{zip_xtn}',
-            recursive=True
-        )
-    )
-    for fname in all_zip_files:
-        try:
-            os.remove(fname)
-        except Exception as err:
-            print(f'Worker file - {fname}, cleanup error')
-    return None
-
-
-def record_stmt_to_file(
-    pid,
-    dat_obj
-):
-    try:
-        with open(f'{pid}.rjson', 'w') as rfile:
-            if isinstance(dat_obj, (list,)):
-                for _ in dat_obj:
-                    rfile.write(json.dumps(_))
-                    rfile.write('\n')
-            else:
-                rfile.write(json.dumps(dat_obj))
-                rfile.write('\n')
-            rfile.write('--- STATEMENT RECORDED BY ZIPOPS FUNCTION ---')
-            rfile.write('\n')
-    except Exception as err:
-        sys.exit(f'Unable to record statement|{err}')
-    return True
-
-
-def get_rowversion(
-    zipset,
-    stampid,
-    app_name,
-    tbl_name,
-):
-    try:
-        with ZipFile(zipset, 'r') as zfile:
-            rower_file = f'{stampid}/{tbl_name}_rowversion.txt'
-            with zfile.open(rower_file, 'r') as rfile:
-                dat = rfile.readlines()
-        if app_name == 'lms':
-            dat = dat[2]
-        else:
-            dat = dat[0]
-        if type(dat).__name__ == 'bytes':
-            dat = dat.decode()
-        return int(dat.split('|')[0].strip())
-    except Exception as err:
-        return err
