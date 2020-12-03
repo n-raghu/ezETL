@@ -55,7 +55,7 @@ def fmt_to_json(
             json_txt = jsonb.decode()
             del jsonb
         except Exception as err:
-            sys.exit('Unable to parse JSON file')
+            sys.exit(f'zipops|Unable to parse JSON file|{err}')
     else:
         sys.exit('Unrecognized JSON format')
     for _char in bad_chars:
