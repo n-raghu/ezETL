@@ -9,6 +9,15 @@ from dimlib import yml_safe_load
 from dimlib import file_path_splitter
 
 
+def file_scanner(folder):
+    return list(
+        iglob(
+            f'{folder}/*.zip',
+            recursive=True
+        )
+    )
+
+
 def reporting_dtypes():
     dtypefiles = {
         'mssql': 'dtype_mssql.json',
@@ -40,8 +49,8 @@ def fmt_to_json(
     zipset,
     jsonfile,
     dtdct,
-    col_name='tbl_col',
-    col_type='col_type',
+    col_name='column_name',
+    col_type='column_type',
 ):
     pyjson = {}
     zipset_path_split_to_list = zipset.split('/')
@@ -73,25 +82,17 @@ def build_file_set(
     all_cfg,
     worker_file,
     active_collections,
-    create_cache_tbl
 ):
     xport_cfg = all_cfg['xport_cfg']
-    db_schema = all_cfg['db_schema']
-    del all_cfg
     fmt_xtn = xport_cfg['fmt_extension']
     dat_xtn = xport_cfg['dat_extension']
-    en_zip_path = xport_cfg['en_zip_path']
-    zip_path_splitter = len(list(filter(None, en_zip_path.split('/'))))
     worker_file_splitter = worker_file.split('/')
     if '' in worker_file_splitter:
         worker_file_splitter.remove('')
     elif ' ' in worker_file_splitter:
         worker_file_splitter.remove(' ')
-    icode = str(worker_file_splitter[zip_path_splitter]).lower()
-    worker_base_file = worker_file_splitter[len(worker_file_splitter) - 1]
-    worker_base_file_splitter = worker_base_file.split('_')
-    file_stamp = worker_base_file_splitter[0]
-    app_code = str(worker_base_file_splitter[1]).split('.')[0]
+    version = (worker_file_splitter[-1:][0]).split('.')[0]
+    version = version.split('_')[1]
     with ZipFile(worker_file, 'r') as zfile:
         _all_in_zipset = zfile.namelist()
     fmt_files_in_zipset = []
@@ -102,29 +103,22 @@ def build_file_set(
         except IndexError:
             continue
     file_set = []
-    activ_collection_set = {c['collection'] for c in active_collections}
-    pki_enabled_set = {c['collection'] for c in active_collections if c['pki']}
-    dat_enabled_set = {c['collection'] for c in active_collections if c['dat']}
     for _file in fmt_files_in_zipset:
         _app_tbl_name = str(os.path.splitext(
             os.path.basename(_file)
         )[0]).lower()
-        if _app_tbl_name not in activ_collection_set:
+        if _app_tbl_name not in active_collections:
             continue
 
         dt_ingest_info = {
-            'version': icode,
+            'version': version,
             'dataset': worker_file,
             'dat_file': f'{_app_tbl_name}.{dat_xtn}',
             'fmt_file': f'{_app_tbl_name}.{fmt_xtn}',
             'mother_tbl': _app_tbl_name,
             'tbl_name': _app_tbl_name,
-            'ins_tbl': f'{icode}_{_app_tbl_name}',
-            'stampid': file_stamp,
+            'ins_tbl': f'{version}_{_app_tbl_name}',
         }
 
-        if _app_tbl_name in dat_enabled_set:
-            file_set.append(dt_ingest_info.copy())
-
-        del dt_ingest_info
+        file_set.append(dt_ingest_info)
     return file_set

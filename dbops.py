@@ -6,6 +6,38 @@ from psycopg2.extras import RealDictCursor
 from dimlib import sql_query_cleanser
 
 
+def get_active_tables(cnx):
+    sql_query = f'''
+                    SELECT
+                        n.nspname as schema,
+                        c.relname as name
+                    FROM
+                        pg_catalog.pg_class c
+                    LEFT JOIN
+                        pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                        WHERE c.relkind IN ('r','p','')
+                            AND n.nspname <> 'pg_catalog'
+                            AND n.nspname <> 'information_schema'
+                            AND n.nspname !~ '^pg_toast'
+                            AND c.relpartbound IS NULL
+                            AND NOT EXISTS (
+                                SELECT
+                                    1
+                                FROM
+                                    pg_catalog.pg_inherits i
+                                WHERE
+                                    i.inhrelid = c.oid
+                            );
+                '''
+    cnx.rollback()
+    with cnx.cursor() as dbcur:
+        dbcur.execute(sql_query)
+        mother_tables = dbcur.fetchall()
+    return {
+        _[1] for _ in mother_tables
+    }
+
+
 def get_mother_tbl_columns(cnx, mother_tbl):
     sql_query = f'''SELECT
                         column_name
@@ -25,7 +57,6 @@ def create_ins_tbl(
     cnx,
     mother_tbl,
     ins_tbl,
-    db_schema,
     ins_tbl_map,
 ):
     tbl_columns = ''
@@ -34,9 +65,9 @@ def create_ins_tbl(
     for fld in ins_only_columns:
         tbl_columns += f'{fld} {ins_tbl_map[fld]},'
     tbl_columns = tbl_columns[:-1]
-    tbl_statement = f''' CREATE TABLE IF NOT EXISTS {db_schema}.{ins_tbl}(
+    tbl_statement = f''' CREATE TABLE IF NOT EXISTS {ins_tbl}(
         {tbl_columns}
-        ) INHERITS ({db_schema}.{mother_tbl});'''
+        ) INHERITS ({mother_tbl});'''
     with cnx.cursor() as dbcur:
         dbcur.execute(tbl_statement)
         cnx.commit()

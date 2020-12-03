@@ -11,9 +11,8 @@ max_workers: 3
 
 xport_cfg:
   fmt_extension: json
-  dat_extension: txt
+  dat_extension: dat
   field_separator: '|'
-  worker_xtn: io
   zip_path: worker/data/
   archive_path: worker/archive/
   dat_quote: '`'

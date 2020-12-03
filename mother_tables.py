@@ -15,29 +15,27 @@ except Exception as err:
 d_users = '''
         CREATE TABLE IF NOT EXISTS users(
             userid TEXT,
-            cc TEXT,
             created_stamp TIMESTAMP WITHOUT TIME ZONE,
             instancecode TEXT
         );
     '''
 if action == 'purge':
-    d_users = 'DROP TABLE IF EXISTS users;'
+    d_users = 'DROP TABLE IF EXISTS users CASCADE;'
 elif action == 'recreate':
-    d_users = f'DROP TABLE IF EXISTS users;{d_users}'
+    d_users = f'DROP TABLE IF EXISTS users CASCADE;{d_users}'
 
 
 d_courses = '''
         CREATE TABLE IF NOT EXISTS courses(
             courseid TEXT,
-            strCopiedFromUserDefinedCourseID TEXT,
             created_stamp TIMESTAMP WITHOUT TIME ZONE,
             INSTANCECODE TEXT
         );
     '''
 if action == 'purge':
-    d_users = 'DROP TABLE IF EXISTS courses;'
+    d_courses = 'DROP TABLE IF EXISTS courses CASCADE;'
 elif action == 'recreate':
-    d_users = f'DROP TABLE IF EXISTS courses;{d_courses}'
+    d_courses = f'DROP TABLE IF EXISTS courses;{d_courses}'
 
 
 f_usercourses = '''
@@ -49,9 +47,9 @@ f_usercourses = '''
         );
     '''
 if action == 'purge':
-    d_users = 'DROP TABLE IF EXISTS usercourses;'
+    f_usercourses = 'DROP TABLE IF EXISTS userassignedcourses CASCADE;'
 elif action == 'recreate':
-    d_users = f'DROP TABLE IF EXISTS usercourses;{f_usercourses}'
+    f_usercourses = f'DROP TABLE IF EXISTS userassignedcourses CASCADE;{f_usercourses}'
 
 with cnx.cursor() as dbcur:
     dbcur.execute(d_users)
