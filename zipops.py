@@ -1,3 +1,4 @@
+import json
 from dimlib import os, sys, odict, iglob, ZipFile
 from dimlib import yml_safe_load
 from dimlib import file_path_splitter
@@ -39,7 +40,9 @@ def fmt_to_json(
     col_type='col_type',
 ):
     pyjson = {}
-    if 'lms' in zipset:
+    zipset_path_split_to_list = zipset.split('/')
+    zipset_file = zipset_path_split_to_list[len(zipset_path_split_to_list) - 1]
+    if 'lms' in zipset_file:
         dct = dtdct['mssql']
     else:
         dct = dtdct['mysql']
@@ -66,75 +69,76 @@ def fmt_to_json(
     return {k: v for k, v in pyjson.items() if v not in ['binary']}
 
 
-def build_file_set(all_cfg):
+def build_file_set(
+    all_cfg,
+    worker_file,
+    active_collections,
+    create_cache_tbl
+):
     xport_cfg = all_cfg['xport_cfg']
     db_schema = all_cfg['db_schema']
     del all_cfg
-    file_path = xport_cfg['en_zip_path']
-    zip_xtn = xport_cfg['worker_xtn']
     fmt_xtn = xport_cfg['fmt_extension']
     dat_xtn = xport_cfg['dat_extension']
-    zip_set = odict()
+    en_zip_path = xport_cfg['en_zip_path']
+    zip_path_splitter = len(list(filter(None, en_zip_path.split('/'))))
+    worker_file_splitter = worker_file.split('/')
+    if '' in worker_file_splitter:
+        worker_file_splitter.remove('')
+    elif ' ' in worker_file_splitter:
+        worker_file_splitter.remove(' ')
+    icode = str(worker_file_splitter[zip_path_splitter]).lower()
+    worker_base_file = worker_file_splitter[len(worker_file_splitter) - 1]
+    worker_base_file_splitter = worker_base_file.split('_')
+    file_stamp = worker_base_file_splitter[0]
+    app_code = str(worker_base_file_splitter[1]).split('.')[0]
+    with ZipFile(worker_file, 'r') as zfile:
+        _all_in_zipset = zfile.namelist()
+    fmt_files_in_zipset = []
+    for _ in _all_in_zipset:
+        try:
+            if _.split('.')[1] == fmt_xtn:
+                fmt_files_in_zipset.append(_)
+        except IndexError:
+            continue
     file_set = []
-    all_zip_files = list(
-        iglob(
-            f'{file_path}**/*.{zip_xtn}',
-            recursive=True
-        )
-    )
-    for zip_file in all_zip_files:
-        _ins_n_ds = file_path_splitter(zip_file, file_path).split('/')
-        ins_code = _ins_n_ds[0]
-        dataset = _ins_n_ds[1]
-        _time_n_app = dataset.split('_')
-        timestampid = int(_time_n_app[0])
-        app_n_extn = _time_n_app[1]
-        _app_n_extn = os.path.splitext(os.path.basename(app_n_extn))
-        app_code = _app_n_extn[0]
-        if ins_code not in zip_set:
-            zip_set[ins_code] = []
-        _xlist = zip_set[ins_code]
-        _xlist.append(
-            {
-                'stampid': timestampid,
-                'app_code': app_code,
-                'dataset': zip_file,
-            }
-        )
-        zip_set[ins_code] = _xlist
-    for icode, stampset in zip_set.items():
-        sorted_stampset = sorted(stampset, key=lambda _: _['stampid'])
-        eligible_stampid = sorted_stampset[0]['stampid']
-        zipset_of_eligible_stampid = [
-            _ for _ in stampset if _['stampid'] == eligible_stampid
-        ]
-        for zipset in zipset_of_eligible_stampid:
-            with ZipFile(zipset['dataset'], 'r') as zfile:
-                _all_in_zipset = zfile.namelist()
-            fmt_files_in_zipset = [
-                _ for _ in _all_in_zipset if _.split('.')[1] == fmt_xtn
-            ]
-            for _file in fmt_files_in_zipset:
-                _app_tbl_name = os.path.splitext(
-                    os.path.basename(_file)
-                )[0]
-                dt_ingest_info = {
-                    'icode': icode,
-                    'dataset': zipset['dataset'],
-                    'dat_file': f'{_app_tbl_name}.{dat_xtn}',
-                    'fmt_file': f'{_app_tbl_name}.{fmt_xtn}',
-                    'mother_tbl': _app_tbl_name,
-                    'tbl_name': _app_tbl_name,
-                    'ins_tbl': f'{icode}_{_app_tbl_name}',
-                    'stampid': zipset['stampid'],
-                    'app_name': zipset['app_code'],
-                    'schema_name': db_schema,
-                }
-                file_set.append(dt_ingest_info.copy())
-                dt_ingest_info['dat_file'] = f'{_app_tbl_name}_pki.{dat_xtn}'
-                dt_ingest_info['ins_tbl'] = f'{icode}_{_app_tbl_name}_pki'
-                file_set.append(dt_ingest_info.copy())
-                del dt_ingest_info
+    activ_collection_set = {c['collection'] for c in active_collections}
+    pki_enabled_set = {c['collection'] for c in active_collections if c['pki']}
+    dat_enabled_set = {c['collection'] for c in active_collections if c['dat']}
+    for _file in fmt_files_in_zipset:
+        _app_tbl_name = str(os.path.splitext(
+            os.path.basename(_file)
+        )[0]).lower()
+        if _app_tbl_name not in activ_collection_set:
+            continue
+
+        dt_ingest_info = {
+            'icode': icode,
+            'dataset': worker_file,
+            'dat_file': f'{_app_tbl_name}.{dat_xtn}',
+            'fmt_file': f'{_app_tbl_name}.{fmt_xtn}',
+            'mother_tbl': _app_tbl_name,
+            'tbl_name': _app_tbl_name,
+            'ins_tbl': f'{icode}_{_app_tbl_name}',
+            'stampid': file_stamp,
+            'app_name': app_code,
+            'schema_name': db_schema,
+            'build_ins_tbl': True,
+            'pki_tbl': False,
+            'build_cache_tbl': False,
+        }
+
+        if _app_tbl_name in dat_enabled_set:
+            file_set.append(dt_ingest_info.copy())
+
+        if xport_cfg['ingest_pki'] and _app_tbl_name in pki_enabled_set:
+            dt_ingest_info['dat_file'] = f'{_app_tbl_name}_pki.{dat_xtn}'
+            dt_ingest_info['mother_tbl'] = f'{_app_tbl_name}_pki'
+            dt_ingest_info['ins_tbl'] = f'{icode}_{_app_tbl_name}_pki'
+            dt_ingest_info['pki_tbl'] = True
+            dt_ingest_info['build_cache_tbl'] = create_cache_tbl
+            file_set.append(dt_ingest_info.copy())
+        del dt_ingest_info
     return file_set
 
 
@@ -155,3 +159,45 @@ def purge_worker_files(all_cfg):
         except Exception as err:
             print(f'Worker file - {fname}, cleanup error')
     return None
+
+
+def record_stmt_to_file(
+    pid,
+    dat_obj
+):
+    try:
+        with open(f'{pid}.rjson', 'w') as rfile:
+            if isinstance(dat_obj, (list,)):
+                for _ in dat_obj:
+                    rfile.write(json.dumps(_))
+                    rfile.write('\n')
+            else:
+                rfile.write(json.dumps(dat_obj))
+                rfile.write('\n')
+            rfile.write('--- STATEMENT RECORDED BY ZIPOPS FUNCTION ---')
+            rfile.write('\n')
+    except Exception as err:
+        sys.exit(f'Unable to record statement|{err}')
+    return True
+
+
+def get_rowversion(
+    zipset,
+    stampid,
+    app_name,
+    tbl_name,
+):
+    try:
+        with ZipFile(zipset, 'r') as zfile:
+            rower_file = f'{stampid}/{tbl_name}_rowversion.txt'
+            with zfile.open(rower_file, 'r') as rfile:
+                dat = rfile.readlines()
+        if app_name == 'lms':
+            dat = dat[2]
+        else:
+            dat = dat[0]
+        if type(dat).__name__ == 'bytes':
+            dat = dat.decode()
+        return int(dat.split('|')[0].strip())
+    except Exception as err:
+        return err
