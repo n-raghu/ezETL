@@ -10,10 +10,10 @@ def refresh_config():
     with open('config.yml') as _cfg_obj:
         raw_cfg = yml_safe_load(_cfg_obj)
     try:
-        _pgauth = f"{raw_cfg['eaedb']['user']}:{raw_cfg['eaedb']['passwd']}"
-        _pghost = f"{raw_cfg['eaedb']['server']}:{raw_cfg['eaedb']['port']}"
-        _pgdbo = f"{raw_cfg['eaedb']['db']}"
-        path_zip_dat = f"{raw_cfg['xport_cfg']['en_zip_path']}"
+        _pgauth = f"{raw_cfg['datastore']['user']}:{raw_cfg['datastore']['passwd']}"
+        _pghost = f"{raw_cfg['datastore']['server']}:{raw_cfg['datastore']['port']}"
+        _pgdbo = f"{raw_cfg['datastore']['db']}"
+        path_zip_dat = f"{raw_cfg['xport_cfg']['zip_path']}"
         if not path_zip_dat.endswith('/'):
             path_zip_dat += '/'
         path_zip_archive = f"{raw_cfg['xport_cfg']['archive_path']}"
@@ -22,12 +22,7 @@ def refresh_config():
         cfg = {
             'dburi': f'postgresql://{_pgauth}@{_pghost}/{_pgdbo}',
             'cpu_workers': raw_cfg['max_workers'],
-            'db_schema': raw_cfg['eaedb']['schema'],
-            'purge_schema': raw_cfg['eaedb']['purge_schema'],
-            'cache_schema': raw_cfg['eaedb']['cache_schema'],
             'xport_cfg': raw_cfg['xport_cfg'],
-            'agent': raw_cfg['agent'],
-            'salesforce': raw_cfg['salesforce'],
             'path_zip_dat': path_zip_dat,
             'path_zip_archive': path_zip_archive,
         }

@@ -10,9 +10,9 @@ volumes:
         name: vol_zipset_dat
 
 services:
-    csvdb:
-        image: postgres
-        container_name: csvdb
+    zipdb:
+        image: postgres:12.1
+        container_name: zipdb
         hostname: pgxdb
         restart: always
         ports:
@@ -21,7 +21,7 @@ services:
             - zipnet
         environment:
             POSTGRES_USER: pgusr
-            POSTGRES_DB: csvdata
+            POSTGRES_DB: zipdb
             POSTGRES_PASSWORD: pgusr
         volumes:
             - eae_dat:/var/lib/postgresql/data
@@ -40,4 +40,4 @@ services:
         networks: 
             - zipnet
         depends_on:
-            - csvdb
+            - zipdb
