@@ -5,10 +5,10 @@ from glob import iglob
 from zipfile import ZipFile
 from collections import OrderedDict as odict
 
-from dimlib import yml_safe_load
-from dimlib import file_path_splitter
+from dimlib import yml_safe_load, timetracer
 
 
+@timetracer
 def file_scanner(folder):
     return list(
         iglob(
@@ -18,6 +18,7 @@ def file_scanner(folder):
     )
 
 
+@timetracer
 def reporting_dtypes():
     dtypefiles = {
         'mssql': 'dtype_mssql.json',
@@ -78,6 +79,7 @@ def fmt_to_json(
     return {k: v for k, v in pyjson.items() if v not in ['binary']}
 
 
+@timetracer
 def build_file_set(
     all_cfg,
     worker_file,

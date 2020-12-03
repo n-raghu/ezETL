@@ -5,11 +5,12 @@ from concurrent.futures import as_completed
 
 from psycopg2 import connect as pgconnector
 
-from dimlib import refresh_config
+from dimlib import refresh_config, timetracer
 from zipops import build_file_set, file_scanner, fmt_to_json, reporting_dtypes, get_csv_structure
 from dbops import get_active_tables, create_ins_tbl
 from iogen import StrIOGenerator
 
+@timetracer
 def zip_to_tbl(
     dat_sep,
     quote_pattern,
@@ -51,10 +52,6 @@ def zip_to_tbl(
             with cnx.cursor() as dbcur:
                 dbcur.copy_expert(sql=pg_cp_statement, file=chunk)
     cnx.commit()
-
-
-def launchpad():
-    pass
 
 
 if __name__ == '__main__':

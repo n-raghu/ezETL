@@ -3,9 +3,9 @@ from datetime import datetime as dtm
 
 from psycopg2.extras import RealDictCursor
 
-from dimlib import sql_query_cleanser
+from dimlib import timetracer
 
-
+@timetracer
 def get_active_tables(cnx):
     sql_query = f'''
                     SELECT

@@ -1,7 +1,8 @@
 import re
 import os
 import sys
-
+from functools import wraps
+from time import time, sleep
 from yaml import safe_load as yml_safe_load
 
 
@@ -29,43 +30,12 @@ def refresh_config():
     return cfg
 
 
-def file_path_splitter(dat_file_with_path, file_path):
-    index = dat_file_with_path.find(file_path)
-    if index != -1 and index + len(file_path) < len(dat_file_with_path):
-        return dat_file_with_path[index + len(file_path):]
-    else:
-        return None
+def timetracer(myfun):
 
-
-def sql_query_cleanser(sequel_y):
-    bad_chars = ['\r', '\t', '\n', ]
-    for _char in bad_chars:
-        sequel_y = sequel_y.replace(_char, '')
-    return re.sub(' +', ' ', sequel_y)
-
-
-def file_decrypter_buff(
-    enc_file,
-    passcode,
-    gpg_ins,
-    unzip_path='_buff',
-    zip_xtn='io',
-):
-    _file_pattern = enc_file.split('/')
-    _len = len(_file_pattern) - 1
-    _file = _file_pattern[_len]
-    buff_path = ''
-    for _ in range(_len):
-        buff_path = f'{buff_path}{_file_pattern[_]}/'
-    buff_path += unzip_path
-    _file_pattern = _file.split('.')
-    file_name = _file_pattern[0]
-    zip_file = f'{buff_path}/{file_name}.{zip_xtn}'
-    print(zip_file)
-    with open(enc_file, 'rb') as efile:
-        _ins = gpg_ins.decrypt_file(
-            efile,
-            passphrase=passcode,
-            output=zip_file,
-        )
-    return _ins
+    @wraps(myfun)
+    def _wrapper(*args, **kwargs):
+        _t1 = time()
+        _outcome = myfun(*args, **kwargs)
+        print(f'{myfun.__name__} completed in {round((time() - _t1), 1)}')
+        return _outcome
+    return _wrapper
