@@ -103,12 +103,12 @@ if __name__ == '__main__':
     active_tables = get_active_tables(cnx)
     launchpad(
         cfg=cfg,
-        active_tables=active_tables,
         cpu_workers=3,
+        dburi=cfg['dburi'],
+        file_set=file_dumps,
+        dtypes=reporting_dtypes(),
+        active_tables=active_tables,
         dat_sep=cfg['xport_cfg']['field_separator'],
         quote_pattern=cfg['xport_cfg']['dat_quote'],
-        dburi=cfg['dburi'],
-        dtypes=reporting_dtypes(),
-        file_set=file_dumps,
     )
     cnx.close()
