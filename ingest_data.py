@@ -1,15 +1,15 @@
 import sys
 from random import shuffle
 from zipfile import ZipFile
-from concurrent.futures import ProcessPoolExecutor
-from concurrent.futures import as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from psycopg2 import connect as pgconnector
 
-from iogen import StrIOGenerator
-from dimlib import refresh_config, timetracer
-from dbops import get_active_tables, create_ins_tbl
-from zipops import build_file_set, file_scanner, fmt_to_json, \
+from elt.iogen import StrIOGenerator
+from elt.mother_tables import mother_tables
+from elt.dimlib import refresh_config, timetracer
+from elt.dbops import get_active_tables, create_ins_tbl
+from elt.zipops import build_file_set, file_scanner, fmt_to_json, \
     reporting_dtypes, get_csv_structure
 
 
@@ -98,13 +98,9 @@ def zip_to_tbl(
 if __name__ == '__main__':
     cfg = refresh_config()
     cnx = pgconnector(cfg['dburi'])
+    mother_tables(cnx, 'recreate')
     file_dumps = file_scanner(cfg['xport_cfg']['zip_path'])
     active_tables = get_active_tables(cnx)
-    ingestion_info = []
-    for dump in file_dumps:
-        ingestion_info.extend(
-            build_file_set(cfg, dump, active_tables)
-        )
     launchpad(
         cfg=cfg,
         active_tables=active_tables,
