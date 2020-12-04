@@ -1,8 +1,6 @@
 import sys
 from datetime import datetime as dtm
 
-from psycopg2.extras import RealDictCursor
-
 from dimlib import timetracer
 
 @timetracer

@@ -36,6 +36,7 @@ def timetracer(myfun):
     def _wrapper(*args, **kwargs):
         _t1 = time()
         _outcome = myfun(*args, **kwargs)
-        print(f'{myfun.__name__} completed in {round((time() - _t1), 1)}')
+        print(f'{myfun.__name__} completed in {round((time() - _t1), 1)}, ', end='')
+        print(f'PID - {os.getpid()}, Parent PID - {os.getppid()}')
         return _outcome
     return _wrapper

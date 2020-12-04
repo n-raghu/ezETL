@@ -1,14 +1,42 @@
 import sys
+from random import shuffle
 from zipfile import ZipFile
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures import as_completed
 
 from psycopg2 import connect as pgconnector
 
-from dimlib import refresh_config, timetracer
-from zipops import build_file_set, file_scanner, fmt_to_json, reporting_dtypes, get_csv_structure
-from dbops import get_active_tables, create_ins_tbl
 from iogen import StrIOGenerator
+from dimlib import refresh_config, timetracer
+from dbops import get_active_tables, create_ins_tbl
+from zipops import build_file_set, file_scanner, fmt_to_json, \
+    reporting_dtypes, get_csv_structure
+
+
+def launchpad(
+    dat_sep,
+    quote_pattern,
+    cpu_workers,
+    dburi,
+    dtypes,
+    file_set,
+):
+    shuffle(file_set)
+    with ProcessPoolExecutor(max_workers=cpu_workers) as executor:
+        pool_dictionary = {
+            executor.submit(
+                zip_to_tbl,
+                dat_sep,
+                quote_pattern,
+                dburi,
+                dtypes,
+                one_set,
+            ): one_set for one_set in file_set
+        }
+    print('')
+    print('')
+    print(pool_dictionary)
+
 
 @timetracer
 def zip_to_tbl(
@@ -52,6 +80,7 @@ def zip_to_tbl(
             with cnx.cursor() as dbcur:
                 dbcur.copy_expert(sql=pg_cp_statement, file=chunk)
     cnx.commit()
+    cnx.close()
 
 
 if __name__ == '__main__':
@@ -64,11 +93,12 @@ if __name__ == '__main__':
         ingestion_info.extend(
             build_file_set(cfg, dump, active_tables)
         )
-    for dset in ingestion_info:
-        zip_to_tbl(
-            dat_sep=cfg['xport_cfg']['field_separator'],
-            quote_pattern=cfg['xport_cfg']['dat_quote'],
-            urx=cfg['dburi'],
-            dtypes=reporting_dtypes(),
-            one_set=dset
-        )
+    launchpad(
+        cpu_workers=3,
+        dat_sep=cfg['xport_cfg']['field_separator'],
+        quote_pattern=cfg['xport_cfg']['dat_quote'],
+        dburi=cfg['dburi'],
+        dtypes=reporting_dtypes(),
+        file_set=ingestion_info,
+    )
+    cnx.close()
