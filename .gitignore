@@ -1,5 +1,4 @@
 *.db8io
 *.8io
 *.json
-worker/
 __pycache__/
