@@ -38,7 +38,7 @@ def launchpad(
 
     shuffle(file_catalogue)
     with ProcessPoolExecutor(max_workers=cpu_workers) as executor:
-        pool_dictionary = {
+        _i = {
             executor.submit(
                 zip_to_tbl,
                 dat_sep,
@@ -48,9 +48,6 @@ def launchpad(
                 one_set,
             ): one_set for one_set in file_catalogue
         }
-    print('')
-    print('')
-    print(pool_dictionary)
 
 
 @timetracer
