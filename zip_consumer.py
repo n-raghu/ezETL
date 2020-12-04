@@ -14,6 +14,8 @@ from zipops import build_file_set, file_scanner, fmt_to_json, \
 
 
 def launchpad(
+    cfg,
+    active_tables,
     dat_sep,
     quote_pattern,
     cpu_workers,
@@ -21,7 +23,20 @@ def launchpad(
     dtypes,
     file_set,
 ):
-    shuffle(file_set)
+    with ProcessPoolExecutor(max_workers=cpu_workers) as executor:
+        pool_dict = {
+            executor.submit(
+                build_file_set,
+                cfg,
+                dump,
+                active_tables
+            ): dump for dump in file_set
+        }
+    file_catalogue = list()
+    for _future in as_completed(pool_dict):
+        file_catalogue.extend(_future.result())
+
+    shuffle(file_catalogue)
     with ProcessPoolExecutor(max_workers=cpu_workers) as executor:
         pool_dictionary = {
             executor.submit(
@@ -31,7 +46,7 @@ def launchpad(
                 dburi,
                 dtypes,
                 one_set,
-            ): one_set for one_set in file_set
+            ): one_set for one_set in file_catalogue
         }
     print('')
     print('')
@@ -94,11 +109,13 @@ if __name__ == '__main__':
             build_file_set(cfg, dump, active_tables)
         )
     launchpad(
+        cfg=cfg,
+        active_tables=active_tables,
         cpu_workers=3,
         dat_sep=cfg['xport_cfg']['field_separator'],
         quote_pattern=cfg['xport_cfg']['dat_quote'],
         dburi=cfg['dburi'],
         dtypes=reporting_dtypes(),
-        file_set=ingestion_info,
+        file_set=file_dumps,
     )
     cnx.close()
