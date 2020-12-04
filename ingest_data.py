@@ -5,11 +5,11 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from psycopg2 import connect as pgconnector
 
-from elt.iogen import StrIOGenerator
-from elt.mother_tables import mother_tables
-from elt.dimlib import refresh_config, timetracer
-from elt.dbops import get_active_tables, create_ins_tbl
-from elt.zipops import build_file_set, file_scanner, fmt_to_json, \
+from iogen import StrIOGenerator
+from mother_tables import mother_tables
+from dimlib import refresh_config, timetracer
+from dbops import get_active_tables, create_ins_tbl
+from zipops import build_file_set, file_scanner, fmt_to_json, \
     reporting_dtypes, get_csv_structure
 
 
