@@ -19,7 +19,7 @@ Workflow:
     - For every JSON file in dump there should be a subsequent mother/parent table available in database which helps us to create child or version tables using PostgreSQL inheritence
     - If not available, ingestion job creates the mother tables at the start of the process
     - ProcessPoolExecutor spins up the configured number of processes and scans the compressed dumps for JSON files to prepare the list of tables to be created and loaded
-    - ProcessPoolExecutor is again engaged to spin up processes, loop through the list and access data files inside zip file and ingest data to tables. Logic developed using this (gist)[https://gist.github.com/anacrolix/3788413]
+    - ProcessPoolExecutor is again engaged to spin up processes, loop through the list and access data files inside zip file and ingest data to tables. Logic developed using this [gist](https://gist.github.com/anacrolix/3788413)
 
 Working Principle:
     - Python iterator to chunk a large dataset and load it to DB
