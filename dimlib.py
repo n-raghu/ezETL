@@ -1,91 +1,42 @@
+import re
 import os
 import sys
-from glob import iglob
-from zipfile import ZipFile
-from time import process_time as tpt
-from collections import OrderedDict as odict
-
+from functools import wraps
+from time import time, sleep
 from yaml import safe_load as yml_safe_load
-from psycopg2 import connect as pgconnector
-from gnupg import GPG
 
 
 def refresh_config():
     cfg = {}
-    with open('story.yml') as _cfg_obj:
+    with open('config.yml') as _cfg_obj:
         raw_cfg = yml_safe_load(_cfg_obj)
     try:
-        _pgauth = f"{raw_cfg['datastore']['uid']}:{raw_cfg['datastore']['pwd']}"
-        _pghost = f"{raw_cfg['datastore']['host']}:{raw_cfg['datastore']['port']}"
-        _pgdbo = f"{raw_cfg['datastore']['dbn']}"
+        _pgauth = f"{raw_cfg['datastore']['user']}:{raw_cfg['datastore']['passwd']}"
+        _pghost = f"{raw_cfg['datastore']['server']}:{raw_cfg['datastore']['port']}"
+        _pgdbo = f"{raw_cfg['datastore']['db']}"
+        path_zip_dat = f"{raw_cfg['xport_cfg']['zip_path']}"
+        if not path_zip_dat.endswith('/'):
+            path_zip_dat += '/'
+        path_zip_archive = f"{raw_cfg['xport_cfg']['archive_path']}"
+        if not path_zip_archive.endswith('/'):
+            path_zip_archive += '/'
         cfg = {
             'dburi': f'postgresql://{_pgauth}@{_pghost}/{_pgdbo}',
             'cpu_workers': raw_cfg['max_workers'],
-            'db_schema': raw_cfg['db_schema'],
             'xport_cfg': raw_cfg['xport_cfg'],
         }
-        del _pgauth
-        del _pgdbo
-        del _pghost
     except Exception as err:
-        sys.exit(f'import-config-err: {err}')
+        sys.exit(f'dimlib|import-config-err|{err}')
     return cfg
 
 
-def file_path_splitter(dat_file_with_path, file_path):
-    index = dat_file_with_path.find(file_path)
-    if index != -1 and index + len(file_path) < len(dat_file_with_path):
-        return dat_file_with_path[index + len(file_path):]
-    else:
-        return None
+def timetracer(myfun):
 
-
-def file_decrypter_buff(
-    enc_file,
-    passcode,
-    gpg_ins,
-    unzip_path='_buff',
-    zip_xtn='io',
-):
-    _file_pattern = enc_file.split('/')
-    _len = len(_file_pattern) - 1
-    _file = _file_pattern[_len]
-    buff_path = ''
-    for _ in range(_len):
-        buff_path = f'{buff_path}{_file_pattern[_]}/'
-    buff_path += unzip_path
-    _file_pattern = _file.split('.')
-    file_name = _file_pattern[0]
-    zip_file = f'{buff_path}/{file_name}.{zip_xtn}'
-    print(zip_file)
-    with open(enc_file, 'rb') as efile:
-        _ins = gpg_ins.decrypt_file(
-            efile,
-            passphrase=passcode,
-            output=zip_file,
-        )
-    return _ins
-
-
-def file_decrypter(
-    enc_file,
-    passcode,
-    gpg_ins,
-    zip_xtn='io',
-):
-    _file_pattern = enc_file.split('/')
-    _len = len(_file_pattern) - 1
-    _file = _file_pattern[_len]
-    buff_path = '/'.join(_file_pattern[:_len])
-    print(buff_path)
-    _file_pattern = _file.split('.')
-    file_name = _file_pattern[0]
-    zip_file = f'{buff_path}/{file_name}.{zip_xtn}'
-    print(zip_file)
-    with open(enc_file, 'rb') as efile:
-        _ins = gpg_ins.decrypt_file(
-            efile,
-            passphrase=passcode,
-            output=zip_file,
-        )
-    return _ins
+    @wraps(myfun)
+    def _wrapper(*args, **kwargs):
+        _t1 = time()
+        _outcome = myfun(*args, **kwargs)
+        print(f'{myfun.__name__} completed in {round((time() - _t1), 1)}, ', end='')
+        print(f'PID - {os.getpid()}, Parent PID - {os.getppid()}')
+        return _outcome
+    return _wrapper

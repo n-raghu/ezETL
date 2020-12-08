@@ -9,6 +9,5 @@ COPY waker.py /app
 WORKDIR /app
 RUN apt-get install nano -y
 RUN pip install --upgrade pip
-RUN apt-get install systemd -y
 RUN pip install -r modules
 CMD ["bash"]

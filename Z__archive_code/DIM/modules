@@ -1,8 +1,0 @@
-numpy
-pyyaml
-pandas
-psycopg2-binary
-pypyodbc
-mysql-connector-python
-requests
-sqlalchemy

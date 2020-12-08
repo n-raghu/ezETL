@@ -1,13 +1,28 @@
-from dimlib import os, sys, odict, iglob, ZipFile
-from dimlib import yml_safe_load
-from dimlib import file_path_splitter
-from dimtraces import bugtracer, timetracer
+import os
+import sys
+import json
+from glob import iglob
+from zipfile import ZipFile
+from collections import OrderedDict as odict
+
+from dimlib import yml_safe_load, timetracer
 
 
+@timetracer
+def file_scanner(folder):
+    return list(
+        iglob(
+            f'{folder}/*.zip',
+            recursive=True
+        )
+    )
+
+
+@timetracer
 def reporting_dtypes():
     dtypefiles = {
-        'mssql': 'dtype_mssql.json',
-        'mysql': 'dtype_mysql.json',
+        'mssql': 'dtypes/dtype_mssql.json',
+        'mysql': 'dtypes/dtype_mysql.json',
     }
     dtypes = odict()
     for _db, _dfile in dtypefiles.items():
@@ -35,11 +50,13 @@ def fmt_to_json(
     zipset,
     jsonfile,
     dtdct,
-    col_name='tbl_col',
-    col_type='col_type',
+    col_name='column_name',
+    col_type='column_type',
 ):
     pyjson = {}
-    if 'lms' in zipset:
+    zipset_path_split_to_list = zipset.split('/')
+    zipset_file = zipset_path_split_to_list[len(zipset_path_split_to_list) - 1]
+    if 'lms' in zipset_file:
         dct = dtdct['mssql']
     else:
         dct = dtdct['mysql']
@@ -48,11 +65,7 @@ def fmt_to_json(
             jsonb = jfile.read()
     bad_chars = ['\r', '\t', '\n']
     if isinstance(jsonb, bytes):
-        try:
-            json_txt = jsonb.decode()
-            del jsonb
-        except Exception as err:
-            sys.exit('Unable to parse JSON file')
+        json_txt = jsonb.decode()
     else:
         sys.exit('Unrecognized JSON format')
     for _char in bad_chars:
@@ -66,92 +79,48 @@ def fmt_to_json(
     return {k: v for k, v in pyjson.items() if v not in ['binary']}
 
 
-def build_file_set(all_cfg):
+@timetracer
+def build_file_set(
+    all_cfg,
+    worker_file,
+    active_collections,
+):
     xport_cfg = all_cfg['xport_cfg']
-    db_schema = all_cfg['db_schema']
-    del all_cfg
-    file_path = xport_cfg['en_zip_path']
-    zip_xtn = xport_cfg['worker_xtn']
     fmt_xtn = xport_cfg['fmt_extension']
     dat_xtn = xport_cfg['dat_extension']
-    zip_set = odict()
-    file_set = []
-    all_zip_files = list(
-        iglob(
-            f'{file_path}**/*.{zip_xtn}',
-            recursive=True
-        )
-    )
-    for zip_file in all_zip_files:
-        _ins_n_ds = file_path_splitter(zip_file, file_path).split('/')
-        ins_code = _ins_n_ds[0]
-        dataset = _ins_n_ds[1]
-        _time_n_app = dataset.split('_')
-        timestampid = int(_time_n_app[0])
-        app_n_extn = _time_n_app[1]
-        _app_n_extn = os.path.splitext(os.path.basename(app_n_extn))
-        app_code = _app_n_extn[0]
-        if ins_code not in zip_set:
-            zip_set[ins_code] = []
-        _xlist = zip_set[ins_code]
-        _xlist.append(
-            {
-                'stampid': timestampid,
-                'app_code': app_code,
-                'dataset': zip_file,
-            }
-        )
-        zip_set[ins_code] = _xlist
-    for icode, stampset in zip_set.items():
-        sorted_stampset = sorted(stampset, key=lambda _: _['stampid'])
-        eligible_stampid = sorted_stampset[0]['stampid']
-        zipset_of_eligible_stampid = [
-            _ for _ in stampset if _['stampid'] == eligible_stampid
-        ]
-        for zipset in zipset_of_eligible_stampid:
-            with ZipFile(zipset['dataset'], 'r') as zfile:
-                _all_in_zipset = zfile.namelist()
-            fmt_files_in_zipset = [
-                _ for _ in _all_in_zipset if _.split('.')[1] == fmt_xtn
-            ]
-            for _file in fmt_files_in_zipset:
-                _app_tbl_name = os.path.splitext(
-                    os.path.basename(_file)
-                )[0]
-                dt_ingest_info = {
-                    'icode': icode,
-                    'dataset': zipset['dataset'],
-                    'dat_file': f'{_app_tbl_name}.{dat_xtn}',
-                    'fmt_file': f'{_app_tbl_name}.{fmt_xtn}',
-                    'mother_tbl': _app_tbl_name,
-                    'tbl_name': _app_tbl_name,
-                    'ins_tbl': f'{icode}_{_app_tbl_name}',
-                    'stampid': zipset['stampid'],
-                    'app_name': zipset['app_code'],
-                    'schema_name': db_schema,
-                }
-                file_set.append(dt_ingest_info.copy())
-                dt_ingest_info['dat_file'] = f'{_app_tbl_name}_pki.{dat_xtn}'
-                dt_ingest_info['ins_tbl'] = f'{icode}_{_app_tbl_name}_pki'
-                file_set.append(dt_ingest_info.copy())
-                del dt_ingest_info
-    return file_set
-
-
-def purge_worker_files(all_cfg):
-    xport_cfg = all_cfg['xport_cfg']
-    del all_cfg
-    file_path = xport_cfg['en_zip_path']
-    zip_xtn = xport_cfg['worker_xtn']
-    all_zip_files = list(
-        iglob(
-            f'{file_path}**/*.{zip_xtn}',
-            recursive=True
-        )
-    )
-    for fname in all_zip_files:
+    worker_file_splitter = worker_file.split('/')
+    if '' in worker_file_splitter:
+        worker_file_splitter.remove('')
+    elif ' ' in worker_file_splitter:
+        worker_file_splitter.remove(' ')
+    version = (worker_file_splitter[-1:][0]).split('.')[0]
+    version = version.split('_')[1]
+    with ZipFile(worker_file, 'r') as zfile:
+        _all_in_zipset = zfile.namelist()
+    fmt_files_in_zipset = []
+    for _ in _all_in_zipset:
         try:
-            os.remove(fname)
-        except Exception as err:
-            print(f'Worker file - {fname}, cleanup error')
-    return None
+            if _.split('.')[1] == fmt_xtn:
+                fmt_files_in_zipset.append(_)
+        except IndexError:
+            continue
+    file_set = []
+    for _file in fmt_files_in_zipset:
+        _app_tbl_name = str(os.path.splitext(
+            os.path.basename(_file)
+        )[0]).lower()
+        if _app_tbl_name not in active_collections:
+            continue
+
+        dt_ingest_info = {
+            'version': version,
+            'dataset': worker_file,
+            'dat_file': f'{_app_tbl_name}.{dat_xtn}',
+            'fmt_file': f'{_app_tbl_name}.{fmt_xtn}',
+            'mother_tbl': _app_tbl_name,
+            'tbl_name': _app_tbl_name,
+            'ins_tbl': f'{version}_{_app_tbl_name}',
+        }
+
+        file_set.append(dt_ingest_info)
+    return file_set

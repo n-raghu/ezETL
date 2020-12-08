@@ -1,31 +1,31 @@
 version: "3.6"
 
 networks: 
-    csv-net:
-        name: csvprogram
+    zipnet:
+        name: concurrentzipset
 
 volumes:
     eae_dat:
         external: false
-        name: vol_csv_dat
+        name: vol_zipset_dat
 
 services:
-    csvdb:
-        image: postgres
-        container_name: csvdb
+    zipdb:
+        image: postgres:12.1
+        container_name: zipdb
         hostname: pgxdb
         restart: always
         ports:
             - 56003:5432
         networks: 
-            - csv-net
+            - zipnet
         environment:
             POSTGRES_USER: pgusr
-            POSTGRES_DB: csvdata
+            POSTGRES_DB: zipdb
             POSTGRES_PASSWORD: pgusr
         volumes:
             - eae_dat:/var/lib/postgresql/data
-            - o:/git/:/git
+            - /home/raghu.neerukonda/journals/concurrent-zip-etl:/journals
         logging:
             driver: none
 
@@ -34,12 +34,10 @@ services:
         command: python waker.py 696969
         container_name: k_pyx
         hostname: host_pyx
-        image: eae-csv-aio
-        ports:
-            - 8080:8080
+        image: concurrent-zip-etl
         volumes:
-            - o:/git:/git
+            - /home/raghu.neerukonda/journals/concurrent-zip-etl:/journals
         networks: 
-            - csv-net
+            - zipnet
         depends_on:
-            - csvdb
+            - zipdb

@@ -1,0 +1,18 @@
+datastore:
+  connection: postgresql
+  port: 5432
+  server: zipdb
+  user: pgusr
+  passwd: pgusr
+  db: zipdb
+
+migrations: ../database/reporting_db
+max_workers: 3
+
+xport_cfg:
+  fmt_extension: json
+  dat_extension: dat
+  field_separator: '|'
+  zip_path: worker/data/
+  archive_path: worker/archive/
+  dat_quote: '`'
