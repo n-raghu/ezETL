@@ -10,7 +10,7 @@ JSON files represent schema of the table and DAT file are a kind of flat file
 - Problems arise when you're analyzing/dashboarding complete aggregated data of all regions onto a single pane.
 - To resolve this, we chose PostgreSQL Inheritence concept to maintain all versions of the applications in one single DB and works for dashboards with the common fields available in all versions.
 
-## Working Principle:
+## Working Principle
 
 - ProcessPoolExecutor to churn up processes and scan for JSON files in each dump file 
 - Prepare a catalogue of files across all compressed files to be ingested
@@ -18,7 +18,7 @@ JSON files represent schema of the table and DAT file are a kind of flat file
 - zipfile.ZipFile class allows to access and read files inside a compressed file
 - Python iterator to chunk a large dataset and load it to DB
 
-## Workflow:
+## Workflow
 ### Stage 1
 - Load config from file, which has info where dumps and dump extensions are configured
 - For every JSON file in dump there should be a subsequent mother/parent table available in database which helps us to create child or version tables using PostgreSQL inheritence
@@ -152,11 +152,14 @@ docker exec -it k_pyx bash
 cd /journal
 python ingest_dat.py
 ```
+
+### Sample Output
+
 This will create sample mother tables and ingest data to version tables.
 This will also spit out the PID and PPID of processes used to ingest data. This is to know how ProcessPoolExecutor works.
 
 
-## Code Extensibility:
+## Code Extensibility
 - At present, it is designed to work with compressed dumps created using SQL Server(MSSQL) and MySQL. It can be extended to work with dumps created using other databases by creating a JSON file for datatypes and configuring the data format like NULL pattern, data separator and encapsulation in YML file
 - You can create decorators to track and record the progress/errors of the ingestion. A sample decorator **timetracer** is created to record the time elapsed for executing a function. Refer function **timetracer** in **dimlib.py**.
 - Schedule the ingestion job to a job scheduler
