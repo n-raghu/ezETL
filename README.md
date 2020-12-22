@@ -1,13 +1,13 @@
-I would like to share one of the fastest & automated ways of ingesting different versions of application tables dump to the database, we achieved this using **iterators** to lazy load the data to DB, **concurrent.futures.ProcessPoolExecutor** to load data in parallel and **PostgreSQL inheritance** concept to maintain different versions of the application.
+I would like to share one of the fastest & automated ways of ingesting different versions of application tables dump to the database
 
-Learn more on the basic concepts used in the article
-- [Python Iterators](https://www.w3schools.com/python/python_iterators.asp)
-- [concurrent.futures.ProcessPoolExecutor](https://docs.python.org/3/library/concurrent.futures.html#processpoolexecutor)
-- [PostgreSQL Inheritance](https://www.postgresql.org/docs/12/tutorial-inheritance.html)
+Before we begin, below links help us to revise the concepts used in this article
+- [Python Iterators](https://www.w3schools.com/python/python_iterators.asp) to lazy load the data to DB
+- [concurrent.futures.ProcessPoolExecutor](https://docs.python.org/3/library/concurrent.futures.html#processpoolexecutor) to load data in parallel
+- [PostgreSQL Inheritance](https://www.postgresql.org/docs/12/tutorial-inheritance.html) concept to maintain different versions of the application
 
-For this demo, I have two ZIP files which are a dump of the same application but different database versions.
-ZIP File v1 has 3 JSON files and 3 data files. The same goes for v2.
-JSON files represent schema of the table and DAT file are a kind of flat file
+_For this demo, I have two ZIP files which are a dump of the same application but different database versions._
+_Zip File v1 has 3 JSON files and 3 data files. The same goes for v2._
+_JSON files represent schema of the table and DAT file are a kind of flat file_
 
 ## What changes from v1 to v2 to vN?
 
