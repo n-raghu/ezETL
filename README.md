@@ -1,12 +1,17 @@
-I would like to share one of the fastest & automated way of ingesting different versions of application tables dump to database, we achieved this using generators to lazy load, concurrent.futures.ProcessPoolExecutor to load data in parallel and PostgreSQL inheritence concept to maintain different versions of the application.
+I would like to share one of the fastest & automated ways of ingesting different versions of application tables dump to the database, we achieved this using **iterators** to lazy load the data to DB, **concurrent.futures.ProcessPoolExecutor** to load data in parallel and **PostgreSQL inheritance** concept to maintain different versions of the application.
 
-For this demo, I have two ZIP files which are a dump of same application but different database versions.
-ZIP File v1 has 3 JSON files and 3 data files. The same goes with v2.
+Learn more on the basic concepts used in the article
+- [Python Iterators](https://www.w3schools.com/python/python_iterators.asp)
+- [concurrent.futures.ProcessPoolExecutor](https://docs.python.org/3/library/concurrent.futures.html#processpoolexecutor)
+- [PostgreSQL Inheritance](https://www.postgresql.org/docs/12/tutorial-inheritance.html)
+
+For this demo, I have two ZIP files which are a dump of the same application but different database versions.
+ZIP File v1 has 3 JSON files and 3 data files. The same goes for v2.
 JSON files represent schema of the table and DAT file are a kind of flat file
 
-## What changes from v1 to v2?
+## What changes from v1 to v2 to vN?
 
-- Application features change time over time which also changes the schema of the underlying database, however, while deploying teams choose to deploy the changes region by region i.e. home countries/region experiences the changes earlier than other regions.
+- Application features change the time over time which also changes the schema of the underlying database, however, while deploying teams choose to deploy the changes region by region i.e. home countries/region experiences the changes earlier than other regions.
 - Problems arise when you're analyzing/dashboarding complete aggregated data of all regions onto a single pane.
 - To resolve this, we chose PostgreSQL Inheritence concept to maintain all versions of the applications in one single DB and works for dashboards with the common fields available in all versions.
 
@@ -21,7 +26,7 @@ JSON files represent schema of the table and DAT file are a kind of flat file
 ## Workflow
 ### Stage 1
 - Load config from file, which has info where dumps and dump extensions are configured
-- For every JSON file in dump there should be a subsequent mother/parent table available in database which helps us to create child or version tables using PostgreSQL inheritence
+- For every JSON file in dump there should be a subsequent mother/parent table available in a database which helps us to create child or version tables using PostgreSQL inheritance
 - If not available, ingestion job creates the mother tables at the start of the process
 
 ```python
@@ -60,7 +65,7 @@ JSON files represent schema of the table and DAT file are a kind of flat file
 ```
 
 - Each process pooled from _ProcessPoolExecutor_ executes the function **build_file_set** with common arguments of `cfg` and `active_tables` and loop each dump file present in python list `file_set`. <br> For instance, we have configured 3 processes in YML file, so three processes will be created in the pool and each pool process will pick one element in the python list `file_set`
-- Function **build_file_set** in **zipops.py** creates list of dicts which has meta information on version of the table, location of table data in dump file and other useful info which helps us to create the version table and ingest data
+- Function **build_file_set** in **zipops.py** creates a list of dicts which has meta-information on the version of the table, location of table data in dump file and other useful info which helps us to create the version table and ingest data
 
 ### Stage 3
 - This is the important and final stage of the ingestion job, where we read the data files inside compressed files and load them to tables.
@@ -135,7 +140,7 @@ def zip_to_tbl(
 _Note_: Logic used to create `chunk` feeds data from Iterator which reads data from file object and is developed based on this [gist](https://gist.github.com/anacrolix/3788413)
 
 ## Try out(Docker)
-You can also check the execution of the utitlity on docker
+You can also check the execution of the utility on docker
 - Pull the docker image
 ```git
 git clone n-raghu/ezdba
@@ -144,14 +149,15 @@ git clone n-raghu/ezdba
 ```git
 docker-compose up -d
 ```
-Compose file consists of two containers, One for the program and another for the PostgreSQL 12.1
+Compose file consists of two containers, one for the program and another for the PostgreSQL 12.1
 
-- Once all the containers of compose file are up and running
+- Once all the containers of compose file are up and running. Log in to the container and hit below command to trigger the ingestion job.
 ```docker
 docker exec -it k_pyx bash
 cd /journal
 python ingest_dat.py
 ```
+**Note** This container automatically shuts down after 3 hours if idle. You can restart the compose file or start the container to try again. 
 
 ### Sample Output
 
@@ -163,5 +169,5 @@ This will also spit out the PID and PPID of processes used to ingest data. This 
 - At present, it is designed to work with compressed dumps created using SQL Server(MSSQL) and MySQL. It can be extended to work with dumps created using other databases by creating a JSON file for datatypes and configuring the data format like NULL pattern, data separator and encapsulation in YML file
 - You can create decorators to track and record the progress/errors of the ingestion. A sample decorator **timetracer** is created to record the time elapsed for executing a function. Refer function **timetracer** in **dimlib.py**.
 - Schedule the ingestion job to a job scheduler
-- GPG file encryption could be better option in term of security, python's gnupg library helps us to deal with encrypted files
-- With few modifications to the code, we can also fetch data directly from database using the libraries
+- GPG file encryption could be a better option in term of security, python's gnupg library helps us to deal with encrypted files
+- With few modifications to the code, we can also fetch data directly from the database using the libraries
