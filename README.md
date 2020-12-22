@@ -63,11 +63,80 @@ JSON files represent schema of the table and DAT file are a kind of flat file
 - Function **build_file_set** in **zipops.py** creates list of dicts which has meta information on version of the table, location of table data in dump file and other useful info which helps us to create the version table and ingest data
 
 ### Stage 3
-- ProcessPoolExecutor is again engaged to spin up processes, loop through the list and access data files inside zip file and ingest data to tables. Logic developed using this [gist](https://gist.github.com/anacrolix/3788413)
+- This is the important and final stage of the ingestion job, where we read the data files inside compressed files and load them to tables.
 
-Code Extensibility:
+```python
+    with ProcessPoolExecutor(max_workers=cpu_workers) as executor:
+        _i = {
+            executor.submit(
+                zip_to_tbl,
+                dat_sep,
+                quote_pattern,
+                dburi,
+                dtypes,
+                one_set,
+            ): one_set for one_set in file_catalogue
+        }
+```
+
+- ProcessPoolExecutor is again engaged to spin up processes, loop through the list `file_catalogue` and provide as arguments to function **zip_to_tbl** along the with the default arguments
+- Function **zip_to_tbl** is executed by each process spun by ProcessPoolExecutor to 
+    - Read JSON files of each table and create dict(Refer object `tbl_json` in below code) which has schema of version table
+    - Use version table schema dict as argument to function **create_ins_tbl** to create instance/version table
+    - Function **get_csv_structure** helps us to read the order of columns available in the first line of a file
+    - Prepare COPY statement using csv_structure and version table
+    - Access data files, create chunks of data and load data tables using copy_expert
+
+```python
+def zip_to_tbl(
+    dat_sep,
+    quote_pattern,
+    urx,
+    dtypes,
+    one_set,
+):
+    cnx = pgconnector(urx)
+    tbl_json = fmt_to_json(
+        zipset=one_set['dataset'],
+        jsonfile=one_set['fmt_file'],
+        dtdct=dtypes,
+    )
+    create_ins_tbl(
+        cnx,
+        mother_tbl=one_set['mother_tbl'],
+        ins_tbl=one_set['ins_tbl'],
+        ins_tbl_map=tbl_json,
+    )
+    null_pattern = 'NULL'
+    tbl_header = get_csv_structure(
+        zipset=one_set['dataset'],
+        datfile=one_set['dat_file']
+    )
+    pg_cp_statement = f"""
+                        COPY \
+                            {one_set['ins_tbl']}({tbl_header}) \
+                        FROM \
+                            STDIN \
+                        WITH \
+                            CSV HEADER \
+                            DELIMITER '{dat_sep}' \
+                            NULL '{null_pattern}' \
+                            QUOTE '{quote_pattern}' \
+                    """
+    with ZipFile(one_set['dataset'], 'r') as zfile:
+        with zfile.open(one_set['dat_file'], 'r') as cfile:
+            chunk = StrIOGenerator(cfile, text_enc='latin_1')
+            with cnx.cursor() as dbcur:
+                dbcur.copy_expert(sql=pg_cp_statement, file=chunk)
+    cnx.commit()
+    cnx.close()
+```
+
+_Note_: Logic used to create `chunk` is developed using this [gist](https://gist.github.com/anacrolix/3788413)
+
+## Code Extensibility:
 - At present, it is designed to work with compressed dumps created using SQL Server(MSSQL) and MySQL. It can be extended to work with dumps created using other databases by creating a JSON file for datatypes and configuring the data format like NULL pattern, data separator and encapsulation in YML file
-- You can create decorators to track and record the progress/errors of the ingestion
+- You can create decorators to track and record the progress/errors of the ingestion. A sample decorator **timetracer** is created to record the time elapsed for executing a function. Refer function **timetracer** in **dimlib.py**.
 - Schedule the ingestion job to a job scheduler
 - GPG file encryption could be better option in term of security, python's gnupg library helps us to deal with encrypted files
 - With few modifications to the code, we can also fetch data directly from database using the libraries
