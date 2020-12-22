@@ -132,7 +132,29 @@ def zip_to_tbl(
     cnx.close()
 ```
 
-_Note_: Logic used to create `chunk` is developed using this [gist](https://gist.github.com/anacrolix/3788413)
+_Note_: Logic used to create `chunk` feeds data from Iterator which reads data from file object and is developed based on this [gist](https://gist.github.com/anacrolix/3788413)
+
+## Try out(Docker)
+You can also check the execution of the utitlity on docker
+- Pull the docker image
+```git
+git clone n-raghu/ezdba
+```
+- Run the compose file.
+```git
+docker-compose up -d
+```
+Compose file consists of two containers, One for the program and another for the PostgreSQL 12.1
+
+- Once all the containers of compose file are up and running
+```docker
+docker exec -it k_pyx bash
+cd /journal
+python ingest_dat.py
+```
+This will create sample mother tables and ingest data to version tables.
+This will also spit out the PID and PPID of processes used to ingest data. This is to know how ProcessPoolExecutor works.
+
 
 ## Code Extensibility:
 - At present, it is designed to work with compressed dumps created using SQL Server(MSSQL) and MySQL. It can be extended to work with dumps created using other databases by creating a JSON file for datatypes and configuring the data format like NULL pattern, data separator and encapsulation in YML file
