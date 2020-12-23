@@ -139,7 +139,7 @@ def zip_to_tbl(
 
 _Note_: Logic used to create `chunk` feeds data from Iterator which reads data from file object and is developed based on this [gist](https://gist.github.com/anacrolix/3788413)
 
-## Try out(Docker)
+## Try it out(Docker)
 You can also check the execution of the utility on docker
 - Pull the docker image
 ```git
