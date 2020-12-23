@@ -7,8 +7,9 @@ def sql_users(action):
     d_users = '''
             CREATE TABLE IF NOT EXISTS users(
                 userid TEXT,
-                created_stamp TIMESTAMP WITHOUT TIME ZONE,
-                instancecode TEXT
+                instancecode TEXT,
+                rower BIGINT,
+                row_timestamp TIMESTAMP WITHOUT TIME ZONE
             );
         '''
     if action == 'purge':
@@ -35,17 +36,14 @@ def sql_courses(action):
 
 def sql_usercourses(action):
     f_usercourses = '''
-            CREATE TABLE IF NOT EXISTS userassignedcourses(
-                courseid TEXT,
-                userid TEXT,
-                created_stamp TIMESTAMP WITHOUT TIME ZONE,
-                INSTANCECODE TEXT
+            CREATE TABLE IF NOT EXISTS user_assigned_courses(
+                instancecode TEXT
             );
         '''
     if action == 'purge':
-        f_usercourses = 'DROP TABLE IF EXISTS userassignedcourses CASCADE;'
+        f_usercourses = 'DROP TABLE IF EXISTS user_assigned_courses CASCADE;'
     elif action == 'recreate':
-        f_usercourses = f'DROP TABLE IF EXISTS userassignedcourses CASCADE;{f_usercourses}'
+        f_usercourses = f'DROP TABLE IF EXISTS user_assigned_courses CASCADE;{f_usercourses}'
     return f_usercourses
 
 

@@ -59,6 +59,8 @@ def zip_to_tbl(
     one_set,
 ):
     cnx = pgconnector(urx)
+    ins_tbl = one_set['ins_tbl']
+    qry = f"select column_name, data_type from information_schema.columns where table_name ='{ins_tbl}';"
     tbl_json = fmt_to_json(
         zipset=one_set['dataset'],
         jsonfile=one_set['fmt_file'],
@@ -91,16 +93,16 @@ def zip_to_tbl(
             chunk = StrIOGenerator(cfile, text_enc='latin_1')
             with cnx.cursor() as dbcur:
                 dbcur.copy_expert(sql=pg_cp_statement, file=chunk)
-    cnx.commit()
+        cnx.commit()
     cnx.close()
 
 
 if __name__ == '__main__':
     cfg = refresh_config()
-    cnx = pgconnector(cfg['dburi'])
-    mother_tables(cnx, 'recreate')
+    dbcnx = pgconnector(cfg['dburi'])
+    mother_tables(dbcnx, 'recreate')
     file_dumps = file_scanner(cfg['xport_cfg']['zip_path'])
-    active_tables = get_active_tables(cnx)
+    active_tables = get_active_tables(dbcnx)
     launchpad(
         cfg=cfg,
         cpu_workers=3,
@@ -111,4 +113,4 @@ if __name__ == '__main__':
         dat_sep=cfg['xport_cfg']['field_separator'],
         quote_pattern=cfg['xport_cfg']['dat_quote'],
     )
-    cnx.close()
+    dbcnx.close()

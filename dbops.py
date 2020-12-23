@@ -68,5 +68,5 @@ def create_ins_tbl(
         ) INHERITS ({mother_tbl});'''
     with cnx.cursor() as dbcur:
         dbcur.execute(tbl_statement)
-        cnx.commit()
+    cnx.commit()
     return True
