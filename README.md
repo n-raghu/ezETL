@@ -2,12 +2,31 @@ Python is one of the widely chosen programming language for most of the advanced
 
 Here, I would like to share an easier and automated solution of ingesting different versions of application tables dump to the database. It is also one of the fastest approach, which took approximately 16 seconds to load a data file of size 1GB with 20 columns. If you wish to get your hands on this, refer the section "Try it out".
 
+### TL;DR:
+We have ingested different versions of table schemas into one single database by leveraging the concept of PostgreSQL Inheritance. Concurrent python library spins up a pool of processes to achieve parallelism by utilizing the maximum available CPU cores, each process is programmed to read files using iterators, which are light on memory and also speeds up the ingestion time.
+
 Before we begin, I recommend you to revise the below concepts for better understanding of this article
-Before we begin, below links help us to revise the concepts used in this article
 - [Python Iterators](https://www.w3schools.com/python/python_iterators.asp) to lazy load the data to DB
 - [concurrent.futures.ProcessPoolExecutor](https://docs.python.org/3/library/concurrent.futures.html#processpoolexecutor) to load data in parallel
 - [PostgreSQL Inheritance](https://www.postgresql.org/docs/12/tutorial-inheritance.html) concept to maintain different versions of the application
 
+## What challenges are addressed?
+
+- Application features change the time over time which also changes the schema of the underlying database, however, while deploying teams choose to deploy the changes region by region i.e. home countries/region experiences the changes earlier than other regions.
+- Problems arise when you're analyzing/dashboarding complete aggregated data of all regions onto a single pane.
+- To resolve this, we chose PostgreSQL Inheritence concept to support all versions of the application in one single DB, the mother/parent table holds the mandatory columns and version tables are created with specific columns for version. This solution worked for us when we dealt with dashboards which are powered from different schemas of the same application.
+
+## Working Principle
+
+- ProcessPoolExecutor to churn up processes and scan for JSON files in each dump file 
+- Prepare a catalogue of files across all compressed files to be ingested
+- ProcessPoolExecutor uses processes from the pool to loop through the catalogue and ingestion data
+- zipfile.ZipFile class allows to access and read files inside a compressed file
+- Python iterator to chunk a large dataset and load it to DB
+
+## Workflow
+
+### DataSet
 _For this excercise, I have three ZIP files which are a dump of the same application but different database versions._
 _Lets have a look what each zip file contains:_
 - Zip File V1
@@ -24,21 +43,6 @@ _Lets have a look what each zip file contains:_
 
 _JSON files represent schema of the table and DAT file are a kind of flat file_
 
-## What changes from v1 to v2 to vN?
-
-- Application features change the time over time which also changes the schema of the underlying database, however, while deploying teams choose to deploy the changes region by region i.e. home countries/region experiences the changes earlier than other regions.
-- Problems arise when you're analyzing/dashboarding complete aggregated data of all regions onto a single pane.
-- To resolve this, we chose PostgreSQL Inheritence concept to support all versions of the application in one single DB, the mother/parent table holds the mandatory columns and version tables are created with specific columns for version. This solution worked for us when we dealt with dashboards which are powered from different schemas of the same application.
-
-## Working Principle
-
-- ProcessPoolExecutor to churn up processes and scan for JSON files in each dump file 
-- Prepare a catalogue of files across all compressed files to be ingested
-- ProcessPoolExecutor uses processes from the pool to loop through the catalogue and ingestion data
-- zipfile.ZipFile class allows to access and read files inside a compressed file
-- Python iterator to chunk a large dataset and load it to DB
-
-## Workflow
 ### Stage 1
 - Load config from file, which has info where dumps and dump extensions are configured
 - For every JSON file in dump there should be a subsequent mother/parent table available in a database which helps us to create child or version tables using PostgreSQL inheritance
