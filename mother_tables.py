@@ -30,7 +30,7 @@ def sql_courses(action):
     if action == 'purge':
         d_courses = 'DROP TABLE IF EXISTS courses CASCADE;'
     elif action == 'recreate':
-        d_courses = f'DROP TABLE IF EXISTS courses;{d_courses}'
+        d_courses = f'DROP TABLE IF EXISTS courses CASCADE;{d_courses}'
     return d_courses
 
 

@@ -48,6 +48,9 @@ def launchpad(
                 one_set,
             ): one_set for one_set in file_catalogue
         }
+    for _future in as_completed(_i):
+        if _future.result():
+            print(_future.result())
 
 
 @timetracer
