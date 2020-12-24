@@ -1,19 +1,34 @@
-I would like to share one of the fastest & automated ways of ingesting different versions of application tables dump to the database
+Python is one of the widely chosen programming language for most of the advanced computing, and undoubtedly, a clear winner when you are playing with data.
 
+Here, I would like to share an easier and automated solution of ingesting different versions of application tables dump to the database. It is also one of the fastest approach, which took approximately 16 seconds to load a data file of size 1GB with 20 columns. If you wish to get your hands on this, refer the section "Try it out".
+
+Before we begin, I recommend you to revise the below concepts for better understanding of this article
 Before we begin, below links help us to revise the concepts used in this article
 - [Python Iterators](https://www.w3schools.com/python/python_iterators.asp) to lazy load the data to DB
 - [concurrent.futures.ProcessPoolExecutor](https://docs.python.org/3/library/concurrent.futures.html#processpoolexecutor) to load data in parallel
 - [PostgreSQL Inheritance](https://www.postgresql.org/docs/12/tutorial-inheritance.html) concept to maintain different versions of the application
 
-_For this demo, I have two ZIP files which are a dump of the same application but different database versions._
-_Zip File v1 has 3 JSON files and 3 data files. The same goes for v2._
+_For this excercise, I have three ZIP files which are a dump of the same application but different database versions._
+_Lets have a look what each zip file contains:_
+- Zip File V1
+    - Users - 5 columns
+    - Courses - 3 columns
+    - UserAssignedCourses - 5 columns
+- Zip File V2 (UserAssignedCourses Table doesn't exist)
+    - Users - 5 columns
+    - Courses - 4 columns
+- Zip File V3
+    - Users - 3 columns
+    - Courses - 2 columns
+    - UserAssignedCourses - 3 columns
+
 _JSON files represent schema of the table and DAT file are a kind of flat file_
 
 ## What changes from v1 to v2 to vN?
 
 - Application features change the time over time which also changes the schema of the underlying database, however, while deploying teams choose to deploy the changes region by region i.e. home countries/region experiences the changes earlier than other regions.
 - Problems arise when you're analyzing/dashboarding complete aggregated data of all regions onto a single pane.
-- To resolve this, we chose PostgreSQL Inheritence concept to maintain all versions of the applications in one single DB and works for dashboards with the common fields available in all versions.
+- To resolve this, we chose PostgreSQL Inheritence concept to support all versions of the application in one single DB, the mother/parent table holds the mandatory columns and version tables are created with specific columns for version. This solution worked for us when we dealt with dashboards which are powered from different schemas of the same application.
 
 ## Working Principle
 
