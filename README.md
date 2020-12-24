@@ -30,16 +30,16 @@ Before we begin, I recommend you to revise the below concepts for better underst
 _For this excercise, I have three ZIP files which are a dump of the same application but different database versions._
 _Lets have a look what each zip file contains:_
 - Zip File V1
-    - Users - 5 columns
-    - Courses - 3 columns
-    - UserAssignedCourses - 5 columns
+    - Users - 8 columns
+    - Courses - 6 columns
+    - UserAssignedCourses - 9 columns
 - Zip File V2 (UserAssignedCourses Table doesn't exist)
-    - Users - 5 columns
-    - Courses - 4 columns
+    - Users - 10 columns
+    - Courses - 6 columns
 - Zip File V3
-    - Users - 3 columns
-    - Courses - 2 columns
-    - UserAssignedCourses - 3 columns
+    - Users - 10 columns
+    - Courses - 7 columns
+    - UserAssignedCourses - 9 columns
 
 _JSON files represent schema of the table and DAT file are a kind of flat file_
 

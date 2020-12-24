@@ -6,10 +6,9 @@ from dimlib import timetracer
 def sql_users(action):
     d_users = '''
             CREATE TABLE IF NOT EXISTS users(
-                userid TEXT,
+                user_id TEXT,
                 instancecode TEXT,
-                rower BIGINT,
-                row_timestamp TIMESTAMP WITHOUT TIME ZONE
+                email TEXT
             );
         '''
     if action == 'purge':
@@ -22,9 +21,10 @@ def sql_users(action):
 def sql_courses(action):
     d_courses = '''
             CREATE TABLE IF NOT EXISTS courses(
-                courseid TEXT,
-                created_stamp TIMESTAMP WITHOUT TIME ZONE,
-                INSTANCECODE TEXT
+                course_id TEXT,
+                course_name TEXT,
+                course_category TEXT,
+                instancecode TEXT
             );
         '''
     if action == 'purge':
@@ -37,7 +37,11 @@ def sql_courses(action):
 def sql_usercourses(action):
     f_usercourses = '''
             CREATE TABLE IF NOT EXISTS user_assigned_courses(
-                instancecode TEXT
+                instancecode TEXT,
+                user_id TEXT,
+                course_id TEXT,
+                assigned_date TIMESTAMP WITHOUT TIME ZONE,
+                completed_date TIMESTAMP WITHOUT TIME ZONE
             );
         '''
     if action == 'purge':
