@@ -6,7 +6,6 @@ datastore:
   passwd: pgusr
   db: zipdb
 
-migrations: ../database/reporting_db
 max_workers: 3
 
 xport_cfg:

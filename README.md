@@ -162,7 +162,7 @@ _Note_: Logic used to create `chunk` feeds data from Iterator which reads data f
 You can also check the execution of the utility on docker
 - Pull the docker image
 ```git
-git clone n-raghu/ezdba
+git clone n-raghu/ezetl
 ```
 - Run the compose file.
 ```git
@@ -172,8 +172,7 @@ Compose file consists of two containers, one for the program and another for the
 
 - Once all the containers of compose file are up and running. Log in to the container and hit below command to trigger the ingestion job.
 ```docker
-docker exec -it k_pyx bash
-cd /journal
+docker exec -it ezetl bash
 python ingest_dat.py
 ```
 **Note** This container automatically shuts down after 3 hours if idle. You can restart the compose file or start the container to try again. 
@@ -183,6 +182,17 @@ python ingest_dat.py
 This will create sample mother tables and ingest data to version tables.
 This will also spit out the PID and PPID of processes used to ingest data. This is to know how ProcessPoolExecutor works.
 
+### Try with custom files
+- Create CSV Export of your database table and change the extension to .dat
+- Create dictionary which has keys **column_name** and **column_type**
+- Save the JSON as a list of these dictionaries. Check Sample JSON **worker/sample.json**
+- Create a mother table for each table you want to ingest
+    - Copy any table function in **mother_tables.py** and redefine with mandatory columns
+    - Rest of the columns will be created in the version table at the time of ingestion
+    - If you're unsure of what columns to be specified in parent/mother table, declare a dummy column. In this case, all columns will be moved to the version table
+- Zip both the files and name the zip file as <app_name>_<version>.zip like myapp_v1.zip
+- Place the zip file inside **worker/data** folder, you can also place it in a different folder and change the default configurations in **config.yml** file
+- Run the ingestion job
 
 ## Code Extensibility
 - At present, it is designed to work with compressed dumps created using SQL Server(MSSQL) and MySQL. It can be extended to work with dumps created using other databases by creating a JSON file for datatypes and configuring the data format like NULL pattern, data separator and encapsulation in YML file, this is all required to extend the program to other data sources
