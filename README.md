@@ -185,8 +185,8 @@ This will also spit out the PID and PPID of processes used to ingest data. This 
 
 
 ## Code Extensibility
-- At present, it is designed to work with compressed dumps created using SQL Server(MSSQL) and MySQL. It can be extended to work with dumps created using other databases by creating a JSON file for datatypes and configuring the data format like NULL pattern, data separator and encapsulation in YML file
+- At present, it is designed to work with compressed dumps created using SQL Server(MSSQL) and MySQL. It can be extended to work with dumps created using other databases by creating a JSON file for datatypes and configuring the data format like NULL pattern, data separator and encapsulation in YML file, this is all required to extend the program to other data sources
 - You can create decorators to track and record the progress/errors of the ingestion. A sample decorator **timetracer** is created to record the time elapsed for executing a function. Refer function **timetracer** in **dimlib.py**.
 - Schedule the ingestion job to a job scheduler
-- GPG file encryption could be a better option in term of security, python's gnupg library helps us to deal with encrypted files
+- GPG file encryption could be a better option in terms of security, python's gnupg library helps us to deal with encrypted files
 - With few modifications to the code, we can also fetch data directly from the database using the libraries
