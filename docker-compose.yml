@@ -25,19 +25,18 @@ services:
             POSTGRES_PASSWORD: pgusr
         volumes:
             - eae_dat:/var/lib/postgresql/data
-            - /home/raghu.neerukonda/journals/concurrent-zip-etl:/journals
         logging:
             driver: none
 
-    pyx:
+    ezetl:
         build: .
         command: python waker.py 696969
-        container_name: k_pyx
-        hostname: host_pyx
+        container_name: ezetl
+        hostname: ezetl
         image: concurrent-zip-etl
-        working_dir: /journals
+        working_dir: /app
         volumes:
-            - /home/raghu.neerukonda/journals/concurrent-zip-etl:/journals
+            - /home/raghu.neerukonda/journals/concurrent-zip-etl:/app
         networks: 
             - zipnet
         depends_on:

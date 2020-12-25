@@ -12,7 +12,7 @@ Before we begin, I recommend you to revise the below concepts for better underst
 
 ## What challenges are addressed?
 
-- Application features change the time over time which also changes the schema of the underlying database, however, while deploying teams choose to deploy the changes region by region i.e. home countries/region experiences the changes earlier than other regions.
+- Application features change time over time which also changes the schema of the underlying database, however, while deploying, teams choose to deploy the changes region by region i.e. home countries/region experiences the changes earlier than other regions.
 - Problems arise when you're analyzing/dashboarding complete aggregated data of all regions onto a single pane.
 - To resolve this, we chose PostgreSQL Inheritence concept to support all versions of the application in one single DB, the mother/parent table holds the mandatory columns and version tables are created with specific columns for version. This solution worked for us when we dealt with dashboards which are powered from different schemas of the same application.
 
@@ -20,8 +20,8 @@ Before we begin, I recommend you to revise the below concepts for better underst
 
 - ProcessPoolExecutor to churn up processes and scan for JSON files in each dump file 
 - Prepare a catalogue of files across all compressed files to be ingested
-- ProcessPoolExecutor uses processes from the pool to loop through the catalogue and ingestion data
-- zipfile.ZipFile class allows to access and read files inside a compressed file
+- ProcessPoolExecutor uses processes from the pool to loop through the catalogue and ingest data
+- zipfile.ZipFile class allows to access and read files inside a compressed file(without decompressing)
 - Python iterator to chunk a large dataset and load it to DB
 
 ## Workflow
@@ -53,7 +53,7 @@ _JSON files represent schema of the table and DAT file are a kind of flat file_
     cnx = pgconnector(cfg['dburi'])
     mother_tables(cnx, 'recreate')
 ```
-- Function **mother_tables** in **mother_tables.py** is a simple function to create or purge tables
+- Function **mother_tables** in **mother_tables.py** is a simple function to create or purge mother/parent tables
 
 ### Stage 2
 - Scan for the compressed files to be ingested and queue up
@@ -83,8 +83,8 @@ _JSON files represent schema of the table and DAT file are a kind of flat file_
         file_catalogue.extend(_future.result())
 ```
 
-- Each process pooled from _ProcessPoolExecutor_ executes the function **build_file_set** with common arguments of `cfg` and `active_tables` and loop each dump file present in python list `file_set`. <br> For instance, we have configured 3 processes in YML file, so three processes will be created in the pool and each pool process will pick one element in the python list `file_set`
-- Function **build_file_set** in **zipops.py** creates a list of dicts which has meta-information on the version of the table, location of table data in dump file and other useful info which helps us to create the version table and ingest data
+- Each process pooled from _ProcessPoolExecutor_ executes the function **build_file_set** with common arguments of `cfg` and `active_tables` and loop each dump file present in python list `file_set`. <br> For instance, we have configured 3 processes in YML file, so three processes will be created in the pool and each process will pick one element from the python list `file_set`
+- Function **build_file_set** in **zipops.py** creates a list of dicts which has meta-information on the version of the table, location of table data in dump file and other useful info which helps us to create the version table
 
 ### Stage 3
 - This is the important and final stage of the ingestion job, where we read the data files inside compressed files and load them to tables.
@@ -103,7 +103,7 @@ _JSON files represent schema of the table and DAT file are a kind of flat file_
         }
 ```
 
-- ProcessPoolExecutor is again engaged to spin up processes, loop through the list `file_catalogue` and provide as arguments to function **zip_to_tbl** along the with the default arguments
+- ProcessPoolExecutor is again engaged to spin up new processes, loop through the list `file_catalogue` and provide as arguments to function **zip_to_tbl** along with the default arguments
 - Function **zip_to_tbl** is executed by each process spun by ProcessPoolExecutor to 
     - Read JSON files of each table and create dict(Refer object `tbl_json` in below code) which has schema of version table
     - Use version table schema dict as argument to function **create_ins_tbl** to create instance/version table
@@ -156,7 +156,7 @@ def zip_to_tbl(
     cnx.close()
 ```
 
-_Note_: Logic used to create `chunk` feeds data from Iterator which reads data from file object and is developed based on this [gist](https://gist.github.com/anacrolix/3788413)
+_Note_: Logic used to create `chunk` feeds data from Iterator which reads data from file object and is developed based on this [gist](https://gist.github.com/anacrolix/3788413). We have wrapped the logic with **io.TextIOWrapper** which extends the program to work with different file encodings.
 
 ## Try it out(Docker)
 You can also check the execution of the utility on docker
