@@ -1,9 +1,10 @@
+# How to dynamically adapt and ingest rapidly changing table schemas while staging data to DataWarehouse 
 Python is one of the widely chosen programming language for most of the advanced computing, and undoubtedly, a clear winner when you are playing with data.
 
 Here, I would like to share an easier and automated solution of ingesting different versions of application tables dump to the database. It is also one of the fastest approach, which took approximately 16 seconds to load a data file of size 1GB with 20 columns. If you wish to get your hands on this, refer the section "Try it out".
 
 ### TL;DR:
-We have ingested different versions of table schemas into one single database by leveraging the concept of PostgreSQL Inheritance. Concurrent python library spins up a pool of processes to achieve parallelism by utilizing the maximum available CPU cores, each process is programmed to read files using iterators, which are light on memory and also speeds up the ingestion time.
+We have ingested different versions of table schemas into one single database by leveraging the concept of PostgreSQL Inheritance. Concurrent python library spins up a pool of processes to achieve parallelism by utilizing the maximum available CPU cores, each process is programmed to create version tables and read data files using iterators, which are light on memory and also speeds up the ingestion time.
 
 Before we begin, I recommend you to revise the below concepts for better understanding of this article
 - [Python Iterators](https://www.w3schools.com/python/python_iterators.asp) to lazy load the data to DB
@@ -18,9 +19,9 @@ Before we begin, I recommend you to revise the below concepts for better underst
 
 ## Working Principle
 
-- ProcessPoolExecutor to churn up processes and scan for JSON files in each dump file 
-- Prepare a catalogue of files across all compressed files to be ingested
-- ProcessPoolExecutor uses processes from the pool to loop through the catalogue and ingest data
+- Create mother tables using minimum/mandatory columns 
+- ProcessPoolExecutor to churn up processes to scan for JSON files in each dump file and prepare a catalogue of files to be ingested
+- ProcessPoolExecutor creates a pool of processes and loop through the catalogue, create version tables and ingest data. Here, version tables are created using PostgreSQL inheritance concept which inherits the mother table schema and also creates specific columns that are required for this version. Identification of version-specific columns is already programmed.
 - zipfile.ZipFile class allows to access and read files inside a compressed file(without decompressing)
 - Python iterator to chunk a large dataset and load it to DB
 
